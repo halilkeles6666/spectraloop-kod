@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyperloop Control Panel</title>
+  <script type="module" crossorigin src="/assets/index-BmX3RASD.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C6hndsJx.css">
+  <style>
+    .ipcam-stack{width:100% !important;max-width:none !important}
+    .ipcam-panel{width:100% !important;max-width:none !important;padding:0 !important;margin-bottom:0 !important;aspect-ratio:auto !important;height:auto !important}
+    .ipcam-viewport{width:100% !important;max-width:none !important;height:auto !important;aspect-ratio:auto !important;margin:0 !important;padding:0 !important}
+    .ipcam-viewport img{margin:0 !important;padding:0 !important;display:block !important;width:100% !important;height:auto !important}
+    .layout-column.layout-center{overflow-y:auto !important;gap:2px !important}
+    .layout-column.layout-center .section-group{margin-bottom:0px !important;gap:0px !important}
+    .layout-column.layout-center .section-content{padding:1px 2px !important;gap:0px !important}
+    .layout-column.layout-center .section-title{font-size:7px !important;padding:1px 2px !important}
+    .layout-column.layout-center .metric{margin-bottom:0px !important}
+    .layout-column.layout-center .metric-value{font-size:10px !important}
+    .layout-column.layout-center .metric-label{font-size:7px !important}
+    .layout-column.layout-center .panel-card{padding:2px !important}
+    .omron-panel{margin-top:0px !important;max-width:40% !important}
+    .omron-panel .section-title{font-size:7px !important}
+    .omron-panel .metric-value{font-size:12px !important}
+    #battery-temps-group{max-width:60% !important}
+    #battery-temps-group .battery-temp-row{margin-bottom:0px !important;font-size:9px !important}
+    #battery-temps-group .battery-temp-value{font-size:10px !important}
+    #battery-temps-group .battery-temp-label{font-size:8px !important}
+    #battery-temps-group .section-title{font-size:7px !important}
+    #imu-bat-wrapper{gap:2px !important}
+    #imu-group .panel-card{padding:2px !important}
+    #imu-group .section-title{font-size:7px !important}
+    #speed-panel .section-title{font-size:7px !important}
+    #speed-panel .panel-card{padding:2px !important}
+    .layout-column.layout-center .section-group .brake-status-item{font-size:7px !important}
+    .layout-center{gap:4px !important}
+    .safety-switch-wrap{display:flex;align-items:center;gap:6px;padding-right:12px;margin-right:2px;border-right:1px solid rgba(255,255,255,0.1)}
+    .safety-switch-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#8899aa}
+    .safety-switch{position:relative;width:36px;height:20px;border-radius:12px;border:2px solid rgba(255,60,60,0.5);background:rgba(255,30,30,0.15);cursor:pointer;padding:0;transition:background .2s,border-color .2s,box-shadow .2s}
+    .safety-switch:hover{box-shadow:0 0 10px rgba(255,30,30,.25)}
+    .safety-switch-knob{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:#ff3333;box-shadow:0 0 6px rgba(255,51,51,.7);transition:transform .2s,background .2s,box-shadow .2s}
+    .safety-switch[data-state="on"]{border-color:rgba(0,200,100,.6);background:rgba(0,200,100,.15)}
+    .safety-switch[data-state="on"] .safety-switch-knob{transform:translateX(16px);background:#00cc66;box-shadow:0 0 6px rgba(0,204,102,.7)}
+    .safety-switch.triggered{animation:safety-pulse .6s ease-in-out infinite}
+    @keyframes safety-pulse{0%,100%{box-shadow:0 0 6px rgba(255,51,51,.7)}50%{box-shadow:0 0 16px rgba(255,51,51,1)}}
+    .va-center-panel{display:none !important}
+    .motor-brake-btn{font-size:11px;font-weight:700;letter-spacing:0.08em;color:#fff;background:linear-gradient(180deg,#cc2200,#991100);border:2px solid #ff3300;border-radius:8px;padding:8px 18px;cursor:pointer;text-transform:uppercase;box-shadow:0 0 12px rgba(255,50,0,0.4);transition:all .15s;margin:8px 0}
+    .motor-brake-btn:hover{background:linear-gradient(180deg,#ee3300,#bb2200);box-shadow:0 0 20px rgba(255,50,0,0.6)}
+    .motor-brake-btn:active{transform:scale(0.96)}
+    .motor-brake-btn.active{background:linear-gradient(180deg,#ff4400,#dd2200);box-shadow:0 0 25px rgba(255,80,0,0.8);animation:brake-pulse 0.8s ease-in-out infinite}
+    @keyframes brake-pulse{0%,100%{box-shadow:0 0 12px rgba(255,50,0,0.5)}50%{box-shadow:0 0 30px rgba(255,80,0,1)}}
+    .tab-bar{display:flex;gap:4px;padding:0 8px;border-left:1px solid rgba(255,255,255,0.1)}
+    .tab-btn{font-size:9px;font-weight:700;letter-spacing:0.05em;color:#88aacc;background:rgba(100,150,200,0.08);border:1px solid rgba(100,150,200,0.2);border-radius:5px;padding:3px 10px;cursor:pointer;transition:all .2s}
+    .tab-btn:hover{background:rgba(100,150,200,0.15)}
+    .tab-btn.tab-vfd{color:#ff9955;border-color:rgba(255,120,60,0.25)}
+    .overlay-panel{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:#080f1e;overflow-y:auto}
+    .overlay-panel.visible{display:block}
+    .overlay-close{position:fixed;top:8px;right:12px;z-index:9999;font-size:10px;font-weight:700;color:#ff6666;background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:5px;padding:4px 10px;cursor:pointer}
+    .overlay-close:hover{background:rgba(255,60,60,0.25)}
+    .bms-page{display:flex;flex-direction:column;height:100vh;padding:5px 6px 4px;gap:4px}
+    .bms-topbar{display:flex;align-items:center;gap:8px;height:22px;flex-shrink:0}
+    .bms-topbar-title{font-size:9px;font-weight:700;color:#00dd66;letter-spacing:0.14em;text-transform:uppercase}
+    .bms-badge{font-size:8px;font-weight:700;padding:1px 7px;border-radius:3px;letter-spacing:0.05em;text-transform:uppercase}
+    .bms-badge-ok{background:rgba(0,210,100,0.12);color:#00ee70;border:1px solid rgba(0,210,100,0.35)}
+    .bms-badge-off{background:rgba(255,60,60,0.10);color:#ff6060;border:1px solid rgba(255,60,60,0.3)}
+    .bms-ts{margin-left:auto;font-size:8px;color:#5a7a90}
+    .bms-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;min-height:0}
+    .bms-grid .bms-card:nth-child(1){grid-column:2;grid-row:1}
+    .bms-grid .bms-card:nth-child(2){grid-column:1;grid-row:2}
+    .bms-grid .bms-card:nth-child(3){grid-column:2;grid-row:2}
+    .bms-grid .bms-card:nth-child(4){grid-column:3;grid-row:2}
+    .bms-grid .bms-card:nth-child(5){grid-column:1;grid-row:3}
+    .bms-grid .bms-card:nth-child(6){grid-column:2;grid-row:3}
+    .bms-grid .bms-card:nth-child(7){grid-column:3;grid-row:3}
+    .bms-card{background:rgba(6,12,26,0.98);border:1px solid rgba(40,80,120,0.4);border-radius:8px;display:flex;flex-direction:column;padding:5px 6px 4px;gap:4px;min-height:0;transition:border-color .35s}
+    .bms-card.online{border-color:rgba(0,200,100,0.45)}
+    .bms-card.offline{border-color:rgba(200,60,60,0.35)}
+    .card-header{display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .card-led{width:6px;height:6px;border-radius:50%;background:#3a5570;flex-shrink:0}
+    .card-led.ok{background:#00ee60;box-shadow:0 0 6px #00ee6070;animation:pulse 2.6s infinite}
+    .card-led.off{background:#ff4455;box-shadow:0 0 4px #ff445560}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .card-title{display:flex;flex-direction:column}
+    .card-bms-num{font-size:10px;font-weight:700;color:#00dd66}
+    .card-bms-code{font-size:6.5px;color:#aaccdd}
+    .dv-badge{margin-left:auto;font-size:7.5px;font-weight:700;font-variant-numeric:tabular-nums;padding:1px 6px;border-radius:3px;background:rgba(30,50,80,0.6);border:1px solid rgba(80,120,160,0.3);color:#7aaacc}
+    .dv-badge.dv-ok{color:#00ee66;border-color:rgba(0,220,100,0.35);background:rgba(0,80,40,0.2)}
+    .dv-badge.dv-warn{color:#ffcc00;border-color:rgba(255,200,0,0.35);background:rgba(80,60,0,0.2)}
+    .dv-badge.dv-bad{color:#ff5555;border-color:rgba(255,80,80,0.35);background:rgba(80,0,0,0.2)}
+    .card-metrics{display:flex;flex-shrink:0;border-top:1px solid rgba(80,120,160,0.15);border-bottom:1px solid rgba(80,120,160,0.15);padding:2px 0}
+    .metric-v{flex:1;display:flex;flex-direction:column;align-items:center}
+    .metric-v+.metric-v{border-left:1px solid rgba(80,120,160,0.15)}
+    .mv-val{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:#e0eeff}
+    .mv-val.green{color:#00ee77}
+    .mv-val.yellow{color:#ffcc00}
+    .mv-lbl{font-size:6px;color:#6a9ab8;letter-spacing:0.07em;text-transform:uppercase}
+    .cell-grid{flex:1;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(3,1fr);gap:2px;min-height:0}
+    .bc{position:relative;display:flex;flex-direction:column;align-items:center;min-height:0;cursor:default;padding-top:4px}
+    .bc::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:32%;height:4px;border-radius:2px 2px 0 0;background:var(--bc-c,#3a5878);z-index:1}
+    .bc-body{flex:1;width:100%;border:1.5px solid var(--bc-c,#3a5878);border-radius:2px 2px 4px 4px;position:relative;overflow:hidden;min-height:0;background:rgba(30,50,80,0.25)}
+    .bc-fill{position:absolute;bottom:0;left:0;right:0;transition:height .55s cubic-bezier(0.4,0,0.2,1)}
+    .bc-lbl{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:5px;color:rgba(255,255,255,0.9);pointer-events:none;font-variant-numeric:tabular-nums;line-height:1}
+    .bc-ok{--bc-c:#00aa44}.bc-warn{--bc-c:#cc9900}.bc-low{--bc-c:#dd2222}.bc-none{--bc-c:#3a5878}
+    .bc-ok .bc-fill{background:linear-gradient(to top,#005c28,#00ff70)}
+    .bc-warn .bc-fill{background:linear-gradient(to top,#7a5000,#ffdd00)}
+    .bc-low .bc-fill{background:linear-gradient(to top,#880000,#ff5555)}
+    .bc-none .bc-fill{background:transparent}
+    .bc-none .bc-body{background:rgba(40,70,110,0.20)}
+    .bc-tip{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(5,12,28,0.97);border:1px solid rgba(0,200,100,0.35);border-radius:4px;padding:2px 6px;font-size:8px;color:#aaddcc;white-space:nowrap;z-index:99;pointer-events:none}
+    .bc:hover .bc-tip{display:block}
+    .vfd-page{max-width:980px;margin:0 auto;padding:14px 16px 40px}
+    .vfd-topbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .vfd-topbar-title{font-size:13px;font-weight:700;color:#00dd66;letter-spacing:0.1em;text-transform:uppercase}
+    .vfd-warn{background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.35);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;line-height:1.6;color:#ffcc66}
+    .vfd-warn b{color:#ffe066}
+    .vfd-table{width:100%;border-collapse:collapse;font-size:11px}
+    .vfd-table thead th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:#6a9ab8;padding:6px 8px;border-bottom:1px solid rgba(80,120,160,0.25)}
+    .vfd-table tbody td{padding:6px 8px;border-bottom:1px solid rgba(80,120,160,0.1);vertical-align:middle}
+    .vfd-table tbody tr:hover{background:rgba(0,170,255,0.03)}
+    .vfd-code{color:#00cc66;font-weight:700;white-space:nowrap}
+    .vfd-name{color:#aaccdd}
+    .vfd-raw{font-variant-numeric:tabular-nums;color:#789}
+    .vfd-scaled{font-variant-numeric:tabular-nums;font-weight:700;color:#e0eeff}
+    .vfd-unit{color:#567;font-size:9px}
+    .vfd-input{width:70px;background:rgba(0,0,0,0.4);border:1px solid rgba(0,170,255,0.3);color:#0df;border-radius:4px;padding:3px 5px;font-size:11px;text-align:center;font-family:inherit}
+    .vfd-wbtn{margin-left:4px;padding:3px 9px;border-radius:4px;border:1px solid rgba(255,120,60,0.4);background:rgba(255,120,60,0.1);color:#ff9955;font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase}
+    .vfd-wbtn:hover{background:rgba(255,120,60,0.25)}
+    .vfd-res{font-size:9px;margin-left:6px}
+    .vfd-res.ok{color:#00dd66}
+    .vfd-res.fail{color:#ff5555}
+    .vfd-refresh{font-size:10px;font-weight:700;color:#0df;background:rgba(0,170,255,0.1);border:1px solid rgba(0,170,255,0.3);border-radius:4px;padding:4px 10px;cursor:pointer}
+    .vfd-refresh:hover{background:rgba(0,170,255,0.2)}
+    .battery-temp-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;font-size:11px}
+    .battery-temp-label{color:#789}
+    .battery-temp-value{font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+    .battery-temp-current{font-size:9px;color:#00aaff;margin-left:6px}
+    .track-progress{margin-top:5px}
+    .progress-bar-bg{width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden}
+    .progress-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#00aaff,#00cc66);transition:width .3s}
+    .progress-labels{display:flex;justify-content:space-between;font-size:9px;color:#567;margin-top:2px}
+    #distance-group{flex-basis:100%;width:100%;order:99}
+  </style>
+</head>
+<body>
+<div id="app"><div id="dashboard-overlay"></div></div>
+<div class="overlay-panel" id="bms-panel">
+  <button class="overlay-close" id="bms-close">KAPAT</button>
+  <div class="bms-page">
+    <div class="bms-topbar">
+      <span class="bms-topbar-title">Spectraloop BMS 144S</span>
+      <span class="bms-badge bms-badge-off" id="bms-ws-badge">Connecting</span>
+      <span class="bms-ts" id="bms-ts"></span>
+    </div>
+    <div class="bms-grid" id="bms-grid"></div>
+  </div>
+</div>
+<div class="overlay-panel" id="vfd-panel">
+  <button class="overlay-close" id="vfd-close">KAPAT</button>
+  <div class="vfd-page">
+    <div class="vfd-topbar">
+      <span class="vfd-topbar-title">VFD Kontrol (Delta MS300)</span>
+      <span class="bms-badge bms-badge-off" id="vfd-ws-badge">Connecting</span>
+      <span class="bms-badge bms-badge-off" id="vfd-status-badge">VFD: ?</span>
+      <button class="vfd-refresh" id="uart-reset" style="color:#ffb45b;border-color:rgba(255,150,50,.45);background:rgba(255,120,20,.1)">UART Hattini Resetle</button>
+      <button class="vfd-refresh" id="vfd-read-all">Tumunu Oku</button>
+    </div>
+    <div class="vfd-warn"><b>Uyari:</b> Bir parametreyi <b>YAZMADAN once</b> Ham degeri VFD panelinden okudugun degerle karsilastir.</div>
+    <table class="vfd-table"><thead><tr><th>Kod</th><th>Parametre</th><th>Ham</th><th>Olcekli</th><th>Birim</th><th>Yeni Deger</th></tr></thead><tbody id="vfd-body"></tbody></table>
+  </div>
+</div>
+<script>
+(function(){
+var WS_URL='ws://'+window.location.hostname+':5006';
+var HB_MS=50;
+var lastArduinoTs=0;
+function setArduinoBadge(ok){
+  var el=document.getElementById('conn-arduino');
+  if(el)el.className='conn-item '+(ok?'online':'offline');
+}
+setInterval(function(){
+  setArduinoBadge(lastArduinoTs>0&&Date.now()-lastArduinoTs<5000);
+},1000);
+
+// Guvenlik switchi KALDIRILDI - koruma artik surekli aktif: sayfa Jetson'a
+// her baglandiginda (veya yeniden baglandiginda) otomatik ARM+HB gonderilir.
+// Kullanicinin herhangi bir sey acmasina gerek yok; PC<->Jetson baglantisi
+// (WS) kesilirse HB de otomatik durur ve Jetson/Arduino watchdog'lari devreye girer.
+var wSrc='var ws=null,hb=null,U=null;function cw(){try{ws=new WebSocket(U);ws.onopen=function(){sh();postMessage({t:"o"})};ws.onmessage=function(e){postMessage({t:"m",d:e.data})};ws.onclose=ws.onerror=function(){ws=null;clearInterval(hb);postMessage({t:"c"});setTimeout(cw,1000)}}catch(e){setTimeout(cw,1000)}}function s(m){if(ws&&ws.readyState===1)ws.send(m)}function sh(){s("ARM");clearInterval(hb);hb=setInterval(function(){s("HB")},'+HB_MS+')}onmessage=function(e){var m=e.data;if(m.c==="i"){U=m.u;cw()}}';
+var worker=null;
+try{
+  worker=new Worker(URL.createObjectURL(new Blob([wSrc],{type:'application/javascript'})));
+  worker.onmessage=function(e){
+    var m=e.data;
+    if(m.t==='m'){try{var msg=JSON.parse(m.d);if(msg.type==='safety'&&msg.data){syncE()}}catch(x){}}
+  };
+  worker.postMessage({c:'i',u:WS_URL});
+}catch(e){}
+
+var suppressUntil=0,synClick=false;
+function watchClicks(){var b=document.getElementById('emergency-stop-btn');if(!b||b.dataset.mw)return;b.dataset.mw='1';b.addEventListener('click',function(){if(synClick)return;suppressUntil=Date.now()+6000},true)}
+function syncE(){var f=function(){var b=document.getElementById('emergency-stop-btn');if(!b)return false;watchClicks();if(Date.now()<suppressUntil)return true;if(!b.classList.contains('system-power-active')){synClick=true;b.click();synClick=false}return true};if(!f()){var iv=setInterval(function(){if(f())clearInterval(iv)},200);setTimeout(function(){clearInterval(iv)},5000)}}
+
+function inject(){
+  var bar=document.querySelector('.conn-bar');if(!bar)return false;if(document.getElementById('tab-bar'))return true;
+  watchClicks();
+  var tb=document.createElement('div');tb.className='tab-bar';tb.id='tab-bar';
+  tb.innerHTML='<button class="tab-btn" id="tab-bms">BMS Hucreler</button><button class="tab-btn tab-vfd" id="tab-vfd">VFD Kontrol</button>';
+  bar.appendChild(tb);
+  document.getElementById('tab-bms').onclick=function(){document.getElementById('bms-panel').classList.add('visible')};
+  document.getElementById('tab-vfd').onclick=function(){document.getElementById('vfd-panel').classList.add('visible');vfdReadAll()};
+  document.getElementById('bms-close').onclick=function(){document.getElementById('bms-panel').classList.remove('visible')};
+  document.getElementById('vfd-close').onclick=function(){document.getElementById('vfd-panel').classList.remove('visible')};
+  return true;
+}
+if(!inject()){var iv1=setInterval(function(){if(inject())clearInterval(iv1)},100)}
+
+// Kamerayi MJPEG stream ile degistir
+function overrideCam(){
+  var viewport=document.getElementById('ipcam-viewport');
+  if(!viewport)return false;
+  if(viewport.dataset.overridden)return true;
+  viewport.dataset.overridden='1';
+  viewport.style.cssText='width:100%;overflow:hidden;border-radius:8px';
+  viewport.innerHTML='<img id="stream-img" src="/api/ipcam/stream" style="width:100%;height:auto;display:block">';
+  // React'in snapshot polling'ini tamamen engelle
+  var ph=document.getElementById('ipcam-placeholder');
+  if(ph)ph.remove();
+  var oldImg=document.getElementById('ipcam-img');
+  if(oldImg)oldImg.remove();
+  // React _connectIpcam'i devre disi birak
+  var obs=new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n.id==='ipcam-img'||n.id==='ipcam-placeholder'){n.remove();}
+      });
+    });
+    var si=document.getElementById('stream-img');
+    if(si&&!si.src.includes('/stream')){si.src='/api/ipcam/stream';}
+  });
+  obs.observe(viewport,{childList:true,subtree:true});
+  return true;
+}
+if(!overrideCam()){var ivCam=setInterval(function(){if(overrideCam())clearInterval(ivCam)},300);setTimeout(function(){clearInterval(ivCam)},10000)}
+
+// Motor Fren Butonu - on+arka fren + motor geri tam gaz
+function addMotorBrake(){
+  var motorSection=document.querySelector('.layout-column.layout-side');
+  if(!motorSection)return false;
+  if(document.getElementById('motor-brake-wrap'))return true;
+  // Motor bolumunun altina ekle
+  var panels=motorSection.querySelectorAll('.section-group');
+  var motorGroup=null;
+  for(var i=0;i<panels.length;i++){var t=panels[i].querySelector('.section-title');if(t&&t.textContent.indexOf('Motor')>=0){motorGroup=panels[i];break}}
+  if(!motorGroup)return false;
+  var lastDir='MOTOR_DIR_FORWARD';
+  var wrap=document.createElement('div');wrap.id='motor-brake-wrap';wrap.style.cssText='padding:4px 8px;';
+  wrap.innerHTML='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px"><button class="motor-brake-btn" style="font-size:9px;padding:6px 10px;flex:1" id="run-3s">3sn CALISTIR</button><button class="motor-brake-btn" style="font-size:9px;padding:6px 10px;flex:1" id="run-5s">5sn CALISTIR</button><button class="motor-brake-btn" style="font-size:9px;padding:6px 10px;flex:1" id="run-7s">7sn CALISTIR</button><button class="motor-brake-btn" style="font-size:9px;padding:6px 10px;flex:1" id="run-10s">10sn CALISTIR</button></div><button class="motor-brake-btn" id="motor-brake-btn" style="width:100%;margin-top:4px">MOTOR FREN</button>';
+  motorGroup.appendChild(wrap);
+
+  var autoWrap=document.createElement('div');autoWrap.id='autonomous-mode-wrap';autoWrap.style.cssText='margin:5px 8px 7px;padding:8px;border:1px solid rgba(0,190,255,.42);border-radius:8px;background:rgba(0,90,140,.12)';
+  autoWrap.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:10px;color:#66d9ff">MOD 1 \u2022 OTONOM</b><span id="autonom-direction" style="font-size:9px;color:#9ab">Yon: ILERI</span></div><div style="font-size:8px;color:#789;margin-bottom:6px">0-2: 28 \u2022 2-4: 56 \u2022 4-6: 84 \u2022 6-8: 112 \u2022 8-10: 140 Hz</div><div style="display:flex;gap:5px"><button class="motor-brake-btn" id="autonom-start" style="flex:1;background:linear-gradient(180deg,#087b55,#05583e);border-color:#14bf85">OTONOM BASLAT</button><button class="motor-brake-btn" id="autonom-stop" style="flex:1;background:linear-gradient(180deg,#a52b2b,#741c1c);border-color:#e04b4b">OTONOM DURDUR</button></div><div id="autonom-status" style="margin-top:6px;font-size:9px;text-align:center;color:#8fa5b5">Hazir \u2022 mevcut yon secimi kullanilir</div>';
+  motorGroup.appendChild(autoWrap);
+  document.getElementById('autonom-start').onclick=autonomStart;
+  document.getElementById('autonom-stop').onclick=autonomStop;
+
+  var speedWrap=document.createElement('div');speedWrap.id='speed-mode-wrap';speedWrap.style.cssText='margin:5px 8px 7px;padding:8px;border:1px solid rgba(130,90,255,.5);border-radius:8px;background:rgba(80,40,150,.12)';
+  speedWrap.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:10px;color:#b99aff">MOD 2 \u2022 HIZA BAGLI FREKANS</b><span id="speed-mode-direction" style="font-size:9px;color:#9ab">Yon: ILERI</span></div><div style="font-size:8px;line-height:1.45;color:#789;margin-bottom:6px">0:15 \u2022 5:25 \u2022 10:40 \u2022 20:60 \u2022 30:80 \u2022 40:100 \u2022 50:120 \u2022 60:140 <span style="color:#a98">km/h:Hz</span></div><div style="display:flex;gap:5px"><button class="motor-brake-btn" id="speed-mode-start" style="flex:1;background:linear-gradient(180deg,#6743a8,#482c79);border-color:#9c70e5">HIZ MODU BASLAT</button><button class="motor-brake-btn" id="speed-mode-stop" style="flex:1;background:linear-gradient(180deg,#a52b2b,#741c1c);border-color:#e04b4b">HIZ MODU DURDUR</button></div><div id="speed-mode-status" style="margin-top:6px;font-size:9px;text-align:center;color:#8fa5b5">Hazir \u2022 Guvenlik acik olmali</div>';
+  motorGroup.appendChild(speedWrap);
+  document.getElementById('speed-mode-start').onclick=speedModeStart;
+  document.getElementById('speed-mode-stop').onclick=autonomStop;
+
+  // Zamanli calistir+fren butonlari
+  document.getElementById('run-3s').onclick=function(){runTimed(3,this)};
+  document.getElementById('run-5s').onclick=function(){runTimed(5,this)};
+  document.getElementById('run-7s').onclick=function(){runTimed(7,this)};
+  document.getElementById('run-10s').onclick=function(){runTimed(10,this)};
+  document.getElementById('motor-brake-btn').onclick=function(){motorBrake(this)};
+  // ABS hiz butonlari
+  var absWrap=document.createElement('div');absWrap.style.cssText='padding:4px 8px;';
+  absWrap.innerHTML='<div style="font-size:8px;color:#789;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px">ABS Hizi</div><div style="display:flex;gap:4px"><button class="motor-brake-btn" style="font-size:9px;padding:5px 8px;flex:1;background:linear-gradient(180deg,#884400,#663300);border-color:#aa5500" id="abs-hz-5">5 Hz</button><button class="motor-brake-btn" style="font-size:9px;padding:5px 8px;flex:1" id="abs-hz-10">10 Hz</button><button class="motor-brake-btn" style="font-size:9px;padding:5px 8px;flex:1;background:linear-gradient(180deg,#cc6600,#994400);border-color:#ff8800" id="abs-hz-20">20 Hz</button><button class="motor-brake-btn" style="font-size:9px;padding:5px 8px;flex:1;background:linear-gradient(180deg,#cc8800,#996600);border-color:#ffaa00" id="abs-hz-30">30 Hz</button><button class="motor-brake-btn" style="font-size:9px;padding:5px 8px;flex:1;background:linear-gradient(180deg,#ccaa00,#998800);border-color:#ffcc00" id="abs-hz-40">40 Hz</button></div>';
+  motorGroup.appendChild(absWrap);
+  var absHzBtns=['abs-hz-5','abs-hz-10','abs-hz-20','abs-hz-30','abs-hz-40'];
+  [['abs-hz-5','ABS_HZ:5'],['abs-hz-10','ABS_HZ:10'],['abs-hz-20','ABS_HZ:20'],['abs-hz-30','ABS_HZ:30'],['abs-hz-40','ABS_HZ:40']].forEach(function(x){
+    document.getElementById(x[0]).addEventListener('click',function(){
+      absHzBtns.forEach(function(id){document.getElementById(id).classList.remove('active')});
+      this.classList.add('active');
+      if(dws&&dws.readyState===1)dws.send(x[1]);
+    });
+  });
+
+  // Kontaktor butonu
+  var ctWrap=document.createElement('div');ctWrap.style.cssText='padding:4px 8px;';
+  ctWrap.innerHTML='<button id="contactor-btn" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ff8800;background:rgba(255,136,0,0.1);color:#ffaa33;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;transition:all .2s">KONTAKTOR AC</button>';
+  motorGroup.appendChild(ctWrap);
+  var ctOn=false;
+  document.getElementById('contactor-btn').addEventListener('click',function(){
+    ctOn=!ctOn;
+    var btn=this;
+    if(ctOn){
+      btn.textContent='KONTAKTOR KAPAT';btn.style.background='rgba(0,200,100,0.2)';btn.style.borderColor='#00cc66';btn.style.color='#00ee66';
+      if(dws&&dws.readyState===1)dws.send('CONTACTOR_ON');
+    }else{
+      btn.textContent='KONTAKTOR AC';btn.style.background='rgba(255,136,0,0.1)';btn.style.borderColor='#ff8800';btn.style.color='#ffaa33';
+      if(dws&&dws.readyState===1)dws.send('CONTACTOR_OFF');
+    }
+  });
+  return true;
+}
+if(!addMotorBrake()){var ivMB=setInterval(function(){if(addMotorBrake())clearInterval(ivMB)},200);setTimeout(function(){clearInterval(ivMB)},8000)}
+
+// React'in _sendToPi'sini intercept et - MOTOR komutlarini HTTP API'ye yonlendir
+// Motor frekans limitini kaldir - React'in Math.min(60) kırpmasını engelle
+function unlockFreqInput(){
+  var inp=document.getElementById('motor-freq-input');
+  if(!inp)return false;
+  if(inp.dataset.unlocked)return true;
+  inp.dataset.unlocked='1';
+  inp.max=500;
+  inp.setAttribute('max','500');
+  // Gercek degeri sakla - React kirpamadan once
+  var realFreq=null;
+  inp.addEventListener('input',function(){realFreq=parseFloat(this.value)||0});
+  inp.addEventListener('change',function(){realFreq=parseFloat(this.value)||0});
+  // value setter'i override et - React kirptiginda geri yaz
+  var desc=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  Object.defineProperty(inp,'value',{
+    get:function(){return desc.get.call(this)},
+    set:function(v){
+      var num=parseFloat(v)||0;
+      // React 60'a kirpiyorsa ve biz daha yuksek girmissek, gercek degeri koru
+      if(num<=60&&realFreq>60){desc.set.call(this,String(realFreq));return}
+      realFreq=num;
+      desc.set.call(this,v);
+    }
+  });
+  return true;
+}
+if(!unlockFreqInput()){var ivFQ=setInterval(function(){if(unlockFreqInput())clearInterval(ivFQ)},200);setTimeout(function(){clearInterval(ivFQ)},8000)}
+
+function interceptMotorCmds(){
+  var origSend=WebSocket.prototype.send;
+  WebSocket.prototype.send=function(data){
+    if(typeof data==='string'){
+      if(data==='MOTOR_DIR_FORWARD'){mapi('/motor/forward');_lastRunDir='forward';return}
+      if(data==='MOTOR_DIR_REVERSE'){mapi('/motor/reverse');_lastRunDir='reverse';return}
+      if(data.startsWith('MOTOR_FREQ:')){var inp=document.getElementById('motor-freq-input');var f=inp?inp.value:data.substring(11);mapi('/motor/freq/'+f);return}
+      if(data==='MOTOR_GO'){mapi('/motor/go');return}
+      if(data==='MOTOR_STOP'){mapi('/motor/stop');return}
+    }
+    origSend.call(this,data);
+  };
+}
+// Motor komutlarini sabit Pi IP'sine yonlendirme.
+// Mevcut WebSocket -> Jetson UART -> Pi yolunu kullan.
+
+function killVA(){var p=document.querySelector('.va-center-panel');if(!p)return false;p.querySelectorAll('video').forEach(function(v){try{v.pause();v.removeAttribute('src');v.load()}catch(e){}});return true}
+if(!killVA()){var iv3=setInterval(function(){if(killVA())clearInterval(iv3)},300);setTimeout(function(){clearInterval(iv3)},8000)}
+
+function moveTemp(){var t=document.getElementById('temp-value'),o=document.querySelector('.omron-panel');if(!t||!o)return false;var s=t.closest('.section-group');if(!s||s.dataset.moved)return true;o.parentNode.insertBefore(s,o.nextSibling);s.dataset.moved='1';return true}
+if(!moveTemp()){var iv4=setInterval(function(){if(moveTemp())clearInterval(iv4)},200);setTimeout(function(){clearInterval(iv4)},8000)}
+
+function addTemp2(){var tempEl=document.getElementById('temp-value');if(!tempEl)return false;if(document.getElementById('temp2-value'))return true;var card=tempEl.closest('.panel-card');if(!card)return false;var row=document.createElement('div');row.className='metric';row.innerHTML='<span class="metric-label">Sicaklik 2</span><span><span class="metric-value" id="temp2-value">--</span><span class="metric-unit">\u00B0C</span></span>';card.appendChild(row);var st=document.createElement('div');st.className='brake-status-item status-free';st.id='temp2-status';st.textContent='Sensor 2: Bekleniyor';st.style.cssText='font-size:9px;text-align:center;margin-top:2px';card.appendChild(st);return true}
+if(!addTemp2()){var ivT2=setInterval(function(){if(addTemp2())clearInterval(ivT2)},300);setTimeout(function(){clearInterval(ivT2)},8000)}
+
+// IMU (BNO055) paneli
+// IMU paneli - batarya sicakliklari yanina
+function addIMUPanel(){
+  var batGroup=document.getElementById('battery-temps-group');
+  if(!batGroup)return false;
+  if(document.getElementById('imu-group'))return true;
+  // Wrapper: bat sicakliklari + IMU yan yana
+  var wrapper=document.createElement('div');wrapper.id='imu-bat-wrapper';
+  wrapper.style.cssText='display:flex;gap:4px;width:100%';
+  batGroup.parentNode.insertBefore(wrapper,batGroup);
+  batGroup.style.cssText='flex:1;min-width:0';
+  wrapper.appendChild(batGroup);
+  // IMU paneli
+  var g=document.createElement('div');g.className='section-group theme-nav';g.id='imu-group';
+  g.style.cssText='flex:1;min-width:0';
+  var sep='<div style="border-top:1px solid rgba(255,255,255,0.06);margin:3px 0"></div>';
+  g.innerHTML='<div class="section-title">ARAC IVME</div><div class="section-content"><div class="panel-card" style="padding:6px;font-family:monospace">'
+    // Ana ivme - buyuk gosterge
+    +'<div style="text-align:center;padding:4px 0">'
+    +'<div style="font-size:8px;color:#0af;text-transform:uppercase;letter-spacing:1px">Arac Ivmesi</div>'
+    +'<div style="font-size:28px;font-weight:900;color:#00ffaa" id="imu-total-acc">0.00</div>'
+    +'<div style="font-size:9px;color:#567">m/s\u00B2</div>'
+    +'</div>'
+    +sep
+    // En yuksek + sifirla
+    +'<div style="text-align:center;padding:3px 0">'
+    +'<div style="font-size:8px;color:#ff9900;text-transform:uppercase;letter-spacing:1px">En Yuksek Ivme</div>'
+    +'<div style="font-size:22px;font-weight:900;color:#ff9900" id="imu-max-total">0.00</div>'
+    +'<div style="font-size:9px;color:#567">m/s\u00B2</div>'
+    +'<button id="imu-reset-max" style="margin-top:3px;font-size:8px;padding:3px 12px;border-radius:4px;border:1px solid rgba(255,100,0,0.4);background:rgba(255,100,0,0.15);color:#ff9900;cursor:pointer;font-weight:700">SIFIRLA</button>'
+    +'</div>'
+    +sep
+    // X Y Z ivme detay
+    +'<div style="font-size:8px;color:#0af;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Eksen Ivmeleri (m/s\u00B2)</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;text-align:center">'
+    +'<div><div style="font-size:7px;color:#567">X</div><div style="font-size:13px;font-weight:700;color:#00ee77" id="imu-lx">0</div></div>'
+    +'<div><div style="font-size:7px;color:#567">Y</div><div style="font-size:13px;font-weight:700;color:#00ee77" id="imu-ly">0</div></div>'
+    +'<div><div style="font-size:7px;color:#567">Z</div><div style="font-size:13px;font-weight:700;color:#00ee77" id="imu-lz">0</div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;text-align:center;margin-top:2px">'
+    +'<div><div style="font-size:6px;color:#567">Max X</div><div style="font-size:10px;font-weight:700;color:#ff9900" id="imu-max-ax">0</div></div>'
+    +'<div><div style="font-size:6px;color:#567">Max Y</div><div style="font-size:10px;font-weight:700;color:#ff9900" id="imu-max-ay">0</div></div>'
+    +'<div><div style="font-size:6px;color:#567">Max Z</div><div style="font-size:10px;font-weight:700;color:#ff9900" id="imu-max-az">0</div></div>'
+    +'</div>'
+    +sep
+    // Egim
+    +'<div style="font-size:8px;color:#0af;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Egim (\u00B0)</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;text-align:center">'
+    +'<div><div style="font-size:7px;color:#567">Heading</div><div style="font-size:12px;font-weight:700;color:#0df" id="imu-heading">--</div></div>'
+    +'<div><div style="font-size:7px;color:#567">Roll</div><div style="font-size:12px;font-weight:700;color:#0df" id="imu-roll">--</div></div>'
+    +'<div><div style="font-size:7px;color:#567">Pitch</div><div style="font-size:12px;font-weight:700;color:#0df" id="imu-pitch">--</div></div>'
+    +'</div>'
+    +sep
+    // Ham ivme + Gyro + Mag + Gravity kompakt
+    +'<div style="font-size:7px;color:#567;margin-bottom:1px">Ham Ivme (m/s\u00B2)</div>'
+    +'<div style="font-size:9px;color:#aaa" id="imu-acc-line">-- / -- / --</div>'
+    +'<div style="font-size:7px;color:#567;margin-top:2px">Gyro (\u00B0/s)</div>'
+    +'<div style="font-size:9px;color:#aaa" id="imu-gyro-line">-- / -- / --</div>'
+    +'<div style="font-size:7px;color:#567;margin-top:2px">Manyetometre (\u00B5T)</div>'
+    +'<div style="font-size:9px;color:#aaa" id="imu-mag-line">-- / -- / --</div>'
+    +'<div style="font-size:7px;color:#567;margin-top:2px">Gravity (m/s\u00B2)</div>'
+    +'<div style="font-size:9px;color:#aaa" id="imu-grv-line">-- / -- / --</div>'
+    +sep
+    +'<div style="display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:7px;color:#789">Kalibrasyon</span>'
+    +'<span style="font-size:9px;font-weight:700" id="imu-cal">--</span></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:7px;color:#789">BNO Sicaklik</span>'
+    +'<span style="font-size:9px;font-weight:700;color:#ffaa33" id="imu-temp">--</span></div>'
+    +'<div style="font-size:6px;color:#345;margin-top:2px" id="imu-log-status">Log: bekleniyor</div>'
+    +'</div></div>';
+  wrapper.appendChild(g);
+  document.getElementById('imu-reset-max').addEventListener('click',function(){
+    _imuMax={ax:0,ay:0,az:0,total:0};
+    ['imu-max-total','imu-max-ax','imu-max-ay','imu-max-az'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='0.00'});
+  });
+  return true;
+}
+if(!addIMUPanel()){var ivIMU=setInterval(function(){if(addIMUPanel())clearInterval(ivIMU)},300);setTimeout(function(){clearInterval(ivIMU)},8000)}
+
+// Hiz ve Yol paneli - batarya sicakliklari + BNO altina
+var _speed=0,_distance=0,_lastImuTime=0;
+function addSpeedPanel(){
+  var w=document.getElementById('imu-bat-wrapper');
+  if(!w)return false;
+  if(document.getElementById('speed-panel'))return true;
+  var p=document.createElement('div');p.id='speed-panel';
+  p.style.cssText='width:100%;margin-top:2px';
+  p.innerHTML='<div class="section-group theme-nav"><div class="section-title">Hiz & Yol (IMU)</div><div class="section-content"><div class="panel-card" style="padding:4px">'
+    +'<div style="display:flex;gap:8px;justify-content:space-around;text-align:center">'
+    +'<div><div style="font-size:7px;color:#567">Hiz</div><div style="font-size:18px;font-weight:900;color:#00ffaa" id="sp-speed">0.0</div><div style="font-size:7px;color:#567">km/h</div></div>'
+    +'<div><div style="font-size:7px;color:#567">Max Hiz</div><div style="font-size:18px;font-weight:900;color:#ff9900" id="sp-max-speed">0.0</div><div style="font-size:7px;color:#567">km/h</div></div>'
+    +'<div><div style="font-size:7px;color:#567">Alinan Yol</div><div style="font-size:18px;font-weight:900;color:#0df" id="sp-distance">0.0</div><div style="font-size:7px;color:#567">m</div></div>'
+    +'</div>'
+    +'<button id="sp-reset" style="margin-top:3px;width:100%;font-size:7px;padding:2px;border-radius:3px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#789;cursor:pointer">HIZ & YOL SIFIRLA</button>'
+    +'<div id="sp-status" style="margin-top:2px;text-align:center;font-size:7px;color:#567">BNO: ofset kalibrasyonu bekleniyor</div>'
+    +'</div></div></div>';
+  w.parentNode.insertBefore(p,w.nextSibling);
+  document.getElementById('sp-reset').addEventListener('click',function(){_speed=0;_distance=0;_maxSpeed=0;_lastImuTime=0;
+    var sv=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v};sv('sp-speed','0.0');sv('sp-max-speed','0.0');sv('sp-distance','0.0');sv('sp-status','BNO: yeniden kalibre ediliyor');
+    if(dws&&dws.readyState===1)dws.send('IMU_SPEED_RESET')});
+  return true;
+}
+var _maxSpeed=0;
+if(!addSpeedPanel()){var ivSP=setInterval(function(){if(addSpeedPanel())clearInterval(ivSP)},300);setTimeout(function(){clearInterval(ivSP)},8000)}
+
+function buildBatTemps(){var o=document.querySelector('.omron-panel'),t=document.getElementById('temp-value');if(!o||!t)return false;if(document.getElementById('battery-temps-group'))return true;var ts=t.closest('.section-group');if(!ts)return false;var g=document.createElement('div');g.className='section-group theme-brake';g.id='battery-temps-group';var ti=document.createElement('div');ti.className='section-title';ti.textContent='Batarya Sicakliklari';var co=document.createElement('div');co.className='section-content';var ca=document.createElement('div');ca.className='panel-card';ca.style.padding='7px';for(var p=1;p<=7;p++){var r=document.createElement('div');r.className='battery-temp-row';var l=document.createElement('span');l.className='battery-temp-label';l.textContent='Batarya '+p;var vw=document.createElement('span');var v=document.createElement('span');v.className='battery-temp-value';v.id='bat-temp-'+p;v.textContent='--';vw.appendChild(v);vw.appendChild(document.createTextNode('\u00B0C'));if(p===1){var cu=document.createElement('span');cu.className='battery-temp-current';cu.id='bat-total-current';cu.textContent='(Toplam Akim: -- A)';vw.appendChild(cu)}r.appendChild(l);r.appendChild(vw);ca.appendChild(r)}co.appendChild(ca);g.appendChild(ti);g.appendChild(co);ts.parentNode.insertBefore(g,ts.nextSibling);return true}
+if(!buildBatTemps()){var iv6=setInterval(function(){if(buildBatTemps())clearInterval(iv6)},200);setTimeout(function(){clearInterval(iv6)},8000)}
+
+var trackLen=186;
+// Pist: 6m bosluk + 76m(4m aralik) + 4m bosluk + 1.95m(5cm aralik) + 2.05m bosluk
+//       + 44m(4m aralik) + 4m bosluk + 0.95m(5cm aralik) + 3.05m bosluk + 44m(4m aralik) = 186m
+// Toplam: 20 + 40 + 12 + 20 + 12 = 104 serit
+var STRIPE_POS=(function(){
+  var s=[];
+  // Bolum 1: 76m boyunca 4m aralikli (20 serit, 180-104m kalan)
+  for(var i=0;i<20;i++) s.push(180-i*4);
+  // 4m bosluk (104 -> 100m kalan)
+  // Bolum 2: Son 100m isaretcisi, 1.95m, 5cm aralikli (40 serit)
+  for(var i=0;i<40;i++) s.push(100-i*0.05);
+  // 2.05m bosluk (98.05 -> 96m kalan)
+  // Bolum 3: 44m boyunca 4m aralikli (12 serit, 96-52m kalan)
+  for(var i=0;i<12;i++) s.push(96-i*4);
+  // 4m bosluk (52 -> 48m kalan)
+  // Bolum 4: Son 48m isaretcisi, 0.95m, 5cm aralikli (20 serit)
+  for(var i=0;i<20;i++) s.push(48-i*0.05);
+  // 3.05m bosluk (47.05 -> 44m kalan)
+  // Bolum 5: 44m boyunca 4m aralikli (12 serit, 44-0m kalan)
+  for(var i=0;i<12;i++) s.push(44-i*4);
+  return s.map(function(k){return{kalan:Math.round(k*100)/100}});
+})();
+function durum(n){if(n<1||n>STRIPE_POS.length)return null;var p=STRIPE_POS[n-1];return{gid:Math.round((trackLen-p.kalan)*100)/100,kal:p.kalan}}
+function buildDist(){var s=document.querySelector('.layout-column.layout-center');if(!s||document.getElementById('distance-group'))return!!s;var g=document.createElement('div');g.className='section-group theme-nav';g.id='distance-group';g.innerHTML='<div class="section-title">Mesafe</div><div class="section-content"><div class="panel-card" style="padding:8px 7px"><div class="metric"><span class="metric-label">Konum</span><span><span class="metric-value" id="dist-cur">0.0</span><span class="metric-unit">m</span></span></div><div class="metric"><span class="metric-label">Kalan</span><span><span class="metric-value" id="dist-rem">186.0</span><span class="metric-unit">m</span></span></div><div class="track-progress"><div class="progress-bar-bg"><div class="progress-bar-fill" id="dist-fill"></div></div><div class="progress-labels"><span>0m</span><span>186m</span></div></div></div></div>';s.appendChild(g);return true}
+if(!buildDist()){var iv7=setInterval(function(){if(buildDist())clearInterval(iv7)},200);setTimeout(function(){clearInterval(iv7)},8000)}
+function updDist(stripe){var d=durum(stripe);if(!d)return;var pct=(d.gid/trackLen)*100;var e=function(id){return document.getElementById(id)};if(e('dist-cur'))e('dist-cur').textContent=d.gid.toFixed(1);if(e('dist-rem'))e('dist-rem').textContent=d.kal.toFixed(1);if(e('dist-fill'))e('dist-fill').style.width=pct+'%'}
+
+var NB=7,NC=24,VMIN=2.8,VMAX=4.2,VWARN=3.5,VLOW=3.0,VV=[2.5,4.5];
+function fp(v){return Math.max(0,Math.min(100,(v-VMIN)/(VMAX-VMIN)*100))}
+function cc(v){return v<VLOW?'bc-low':v<VWARN?'bc-warn':'bc-ok'}
+function dc(m){return m<30?'dv-ok':m<80?'dv-warn':'dv-bad'}
+function buildCard(idx){var d=document.createElement('div');d.className='bms-card offline';d.id='bc-'+idx;var cs='';for(var j=0;j<NC;j++)cs+='<div class="bc bc-none" id="bbc-'+idx+'-'+j+'"><div class="bc-tip" id="bbt-'+idx+'-'+j+'">C'+(j+1)+': -</div><div class="bc-body"><div class="bc-fill" id="bbf-'+idx+'-'+j+'" style="height:0%"></div><div class="bc-lbl" id="bbl-'+idx+'-'+j+'"></div></div></div>';d.innerHTML='<div class="card-header"><span class="card-led off" id="bl-'+idx+'"></span><div class="card-title"><span class="card-bms-num">BMS '+(idx+1)+'</span><span class="card-bms-code" id="bn-'+idx+'">-</span></div><span class="dv-badge" id="bd-'+idx+'">dV -</span></div><div class="card-metrics"><div class="metric-v"><span class="mv-val" id="bv-'+idx+'">-</span><span class="mv-lbl">Volt</span></div><div class="metric-v"><span class="mv-val" id="bs-'+idx+'">-</span><span class="mv-lbl">SoC %</span></div><div class="metric-v"><span class="mv-val" id="ba-'+idx+'">-</span><span class="mv-lbl">Amper</span></div><div class="metric-v"><span class="mv-val" id="bcc-'+idx+'">-</span><span class="mv-lbl">Hucre</span></div></div><div class="cell-grid">'+cs+'</div>';return d}
+var bg=document.getElementById('bms-grid');for(var i=0;i<NB;i++)bg.appendChild(buildCard(i));
+function updBms(b){var id=b.x;if(id<0||id>=NB)return;var card=document.getElementById('bc-'+id),led=document.getElementById('bl-'+id);if(!card)return;var ok=!!b.k;card.className='bms-card '+(ok?'online':'offline');led.className='card-led '+(ok?'ok':'off');var S=function(eid,val){var e=document.getElementById(eid);if(e)e.textContent=val};if(b.n)S('bn-'+id,b.n);S('bv-'+id,b.v!=null?b.v.toFixed(1):'-');S('bs-'+id,b.s!=null?b.s.toFixed(0):'-');S('bcc-'+id,b.c?b.c.length:'-');var cur=b.i||0;var ma=document.getElementById('ba-'+id);if(ma){ma.textContent=Math.abs(cur).toFixed(1);ma.className='mv-val'+(cur<-0.5?' green':cur>0.5?' yellow':'')}var cells=(b.c||[]).filter(function(v){return v>=VV[0]&&v<=VV[1]});if(cells.length>=2){var dvm=Math.round((Math.max.apply(null,cells)-Math.min.apply(null,cells))*1000);var de=document.getElementById('bd-'+id);if(de){de.textContent='dV '+dvm+'mV';de.className='dv-badge '+dc(dvm)}}for(var j=0;j<NC;j++){var bc=document.getElementById('bbc-'+id+'-'+j),bf=document.getElementById('bbf-'+id+'-'+j),bl=document.getElementById('bbl-'+id+'-'+j),bt=document.getElementById('bbt-'+id+'-'+j);if(!bc)continue;var v=j<cells.length?cells[j]:null;if(v!==null){bc.className='bc '+cc(v);bf.style.height=fp(v).toFixed(1)+'%';bl.textContent=v.toFixed(3);bt.textContent='C'+(j+1)+': '+v.toFixed(3)+'V'}else{bc.className='bc bc-none';bf.style.height='0%';bl.textContent='';bt.textContent='C'+(j+1)+': -'}}}
+
+var VP={'00-11':{n:'Frekans Komut Kaynagi',u:'',s:1},'00-22':{n:'Frekans EEPROM Kayit',u:'',s:1},'00-23':{n:'Son Frekansla Ac',u:'',s:1},'01-00':{n:'Maks Cikis Frekansi',u:'Hz',s:0.01},'01-01':{n:'Baz Frekans',u:'Hz',s:0.01},'01-02':{n:'Maks Cikis Gerilimi',u:'V',s:0.1},'01-03':{n:'Orta Nokta Frekansi',u:'Hz',s:0.01},'01-04':{n:'Orta Nokta Gerilimi',u:'V',s:0.1},'01-05':{n:'Min Cikis Frekansi',u:'Hz',s:0.01},'01-06':{n:'Min Cikis Gerilimi',u:'V',s:0.1},'01-08':{n:'Min Frekans Gerilimi',u:'V',s:0.1},'01-10':{n:'Ust Sinir Frekansi',u:'Hz',s:0.01},'01-12':{n:'Hizlanma Suresi',u:'s',s:0.01},'01-13':{n:'Yavaslama Suresi',u:'s',s:0.01},'06-03':{n:'Hizlanma Asiri Akim',u:'%',s:1},'06-04':{n:'Sabit Hiz Asiri Akim',u:'%',s:1}};
+var vb=document.getElementById('vfd-body');
+Object.keys(VP).forEach(function(c){var p=VP[c];var tr=document.createElement('tr');tr.innerHTML='<td class="vfd-code">'+c+'</td><td class="vfd-name">'+p.n+'</td><td class="vfd-raw" id="vr-'+c+'">-</td><td class="vfd-scaled" id="vs-'+c+'">-</td><td class="vfd-unit">'+p.u+'</td><td><input type="number" class="vfd-input" id="vi-'+c+'" step="any"><button class="vfd-wbtn" data-code="'+c+'">Yaz</button><span class="vfd-res" id="vx-'+c+'"></span></td>';vb.appendChild(tr)});
+
+var dws;
+function connectDws(){
+  try{dws=new WebSocket(WS_URL);
+  dws.onopen=function(){var b=document.getElementById('bms-ws-badge');if(b){b.textContent='BAGLI';b.className='bms-badge bms-badge-ok'}var v=document.getElementById('vfd-ws-badge');if(v){v.textContent='BAGLI';v.className='bms-badge bms-badge-ok'}};
+  dws.onmessage=function(evt){try{var msg=JSON.parse(evt.data);
+    if(msg.type==='bms'&&Array.isArray(msg.data)){var totalV=0;msg.data.forEach(function(p){updBms(p);if(p.k&&p.v)totalV+=p.v;if(p.t!=null){var te=document.getElementById('bat-temp-'+(p.x+1));if(te)te.textContent=Number(p.t).toFixed(0)}});var tv=document.getElementById('bat-total-current');if(tv)tv.textContent='(Toplam Volt: '+totalV.toFixed(1)+' V)';document.getElementById('bms-ts').textContent=new Date().toLocaleTimeString('tr-TR')}
+    else if(msg.type==='omron'&&msg.data){updDist(msg.data.stripe)}
+    else if(msg.type==='temp'||msg.type==='arduino_status'){lastArduinoTs=Date.now();setArduinoBadge(true)}
+    else if(msg.type==='status'&&msg.data){lastArduinoTs=Date.now();setArduinoBadge(true);syncUI(msg.data)}
+    else if(msg.type==='imu'&&msg.data){var d=msg.data;var sv=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v};
+      // Toplam arac ivmesi (linear = yercekimsiz)
+      var lx=d.lx||0,ly=d.ly||0,lz=d.lz||0;
+      var totalAcc=Math.sqrt(lx*lx+ly*ly+lz*lz);
+      sv('imu-total-acc',totalAcc.toFixed(2));
+      // Eksen ivmeleri (linear)
+      sv('imu-lx',lx.toFixed(2));sv('imu-ly',ly.toFixed(2));sv('imu-lz',lz.toFixed(2));
+      // Egim
+      sv('imu-heading',d.heading!=null?d.heading.toFixed(1):'--');
+      sv('imu-roll',d.roll!=null?d.roll.toFixed(1):'--');
+      sv('imu-pitch',d.pitch!=null?d.pitch.toFixed(1):'--');
+      // Kompakt satirlar
+      sv('imu-acc-line',d.ax.toFixed(2)+' / '+d.ay.toFixed(2)+' / '+d.az.toFixed(2));
+      sv('imu-gyro-line',d.gx.toFixed(1)+' / '+d.gy.toFixed(1)+' / '+d.gz.toFixed(1));
+      sv('imu-mag-line',d.mx.toFixed(1)+' / '+d.my.toFixed(1)+' / '+d.mz.toFixed(1));
+      var grx=d.grx||0,gry=d.gry||0,grz=d.grz||0;
+      sv('imu-grv-line',grx.toFixed(2)+' / '+gry.toFixed(2)+' / '+grz.toFixed(2));
+      // Kalibrasyon + sicaklik
+      if(d.cal_sys!=null){var cs=['KOTU','DUSUK','IYI','TAM'];sv('imu-cal','S:'+cs[d.cal_sys]+' G:'+cs[d.cal_gyr]+' A:'+cs[d.cal_acc]+' M:'+cs[d.cal_mag])}
+      if(d.temp!=null){sv('imu-temp',d.temp+'\u00B0C')}
+      // Max takip - toplam
+      if(totalAcc>_imuMax.total){_imuMax.total=totalAcc;sv('imu-max-total',totalAcc.toFixed(2))}
+      // Max takip - eksen
+      if(Math.abs(lx)>_imuMax.ax){_imuMax.ax=Math.abs(lx);sv('imu-max-ax',_imuMax.ax.toFixed(2))}
+      if(Math.abs(ly)>_imuMax.ay){_imuMax.ay=Math.abs(ly);sv('imu-max-ay',_imuMax.ay.toFixed(2))}
+      if(Math.abs(lz)>_imuMax.az){_imuMax.az=Math.abs(lz);sv('imu-max-az',_imuMax.az.toFixed(2))}
+      // Hiz ve yol Jetson'da filtrelenip entegre edilir; tarayici sadece gosterir.
+      if(d.speed_calibrating){
+        sv('sp-speed','0.0');sv('sp-status','BNO: arac sabitken ofset kalibrasyonu');
+      }else if(d.speed_kmh!=null){
+        sv('sp-speed',Number(d.speed_kmh).toFixed(1));
+        sv('sp-max-speed',Number(d.max_speed_kmh||0).toFixed(1));
+        sv('sp-distance',Number(d.distance_m||0).toFixed(1));
+        sv('sp-status','BNO '+(d.speed_axis||'X')+' ekseni \u2022 tahmini hiz');
+      }
+      _imuLogBuf.push({t:Date.now(),total:totalAcc,lx:lx,ly:ly,lz:lz})}
+    else if(msg.type==='imu_speed_reset'){var rs=document.getElementById('sp-status');if(rs)rs.textContent='BNO: yeniden kalibre ediliyor'}
+    else if(msg.type==='uart_reset'){var ur=document.getElementById('uart-reset');if(ur){ur.textContent='UART Yeniden Basliyor...';ur.disabled=true}}
+    else if(msg.type==='autonomous_mode'&&msg.data){updateAutonomousUI(msg.data)}
+    else if(msg.type==='vfd_data'){var vb2=document.getElementById('vfd-status-badge');if(vb2){vb2.textContent=msg.connected?'VFD: Bagli':'VFD: Yok';vb2.className='bms-badge '+(msg.connected?'bms-badge-ok':'bms-badge-off')}Object.keys(msg.data).forEach(function(c){var raw=msg.data[c],re=document.getElementById('vr-'+c),se=document.getElementById('vs-'+c);if(raw==null){if(re)re.textContent='-';if(se)se.textContent='-';return}if(re)re.textContent=raw;if(se){var sc=(VP[c]&&VP[c].s)||1;se.textContent=(raw*sc).toFixed(sc<1?2:0)}})}
+    else if(msg.type==='vfd_write_result'){var el=document.getElementById('vx-'+msg.code);if(el){el.textContent=msg.ok?'Yazildi':'Hata';el.className='vfd-res '+(msg.ok?'ok':'fail');setTimeout(function(){el.textContent=''},4000)}}
+  }catch(e){}};
+  dws.onclose=dws.onerror=function(){var b=document.getElementById('bms-ws-badge');if(b){b.textContent='KESILDI';b.className='bms-badge bms-badge-off'}var v=document.getElementById('vfd-ws-badge');if(v){v.textContent='KESILDI';v.className='bms-badge bms-badge-off'}setTimeout(connectDws,2000)};
+  }catch(e){setTimeout(connectDws,2000)}
+}
+connectDws();
+
+// Arduino STATUS'undan gelen gercek duruma gore arayuzu guncelle
+var _lastHardwareStatus={};
+function syncUI(d){
+  _lastHardwareStatus=d||{};
+  // Fren butonlari - senkronizasyon bundle.js'deki conn:status dinleyicisinde
+  // yapiliyor (gercek brake_f/brake_r alanlarini kullanarak), burada tekrar
+  // edilmiyor (eski d.fb/d.rb anahtarlari Arduino'nun gercek alanlarina
+  // uymuyordu ve cakisma/titreme yaratiyordu).
+  // Acil stop
+  var emBtn=document.getElementById('emergency-stop-btn');
+  var emSt=document.getElementById('emergency-stop-status');
+  if(emBtn&&emSt){
+    if(d.em){emBtn.classList.add('system-power-active');emBtn.textContent='Acil Stopu Kaldir';emSt.textContent='Acil Stop: AKTIF';emSt.className='brake-status-item status-active'}
+    else{emBtn.classList.remove('system-power-active');emBtn.textContent='ACIL STOP';emSt.textContent='Acil Stop: Pasif';emSt.className='brake-status-item status-free'}
+  }
+  // Kontaktor - statustan guncelleme yok, sadece butonla kontrol edilir
+  // SSR
+  var ssrBtn=document.getElementById('ssr-btn');
+  var ssrSt=document.getElementById('ssr-status');
+  if(ssrBtn){ssrBtn.classList.toggle('brake-btn-active',!!d.ss);if(ssrSt){ssrSt.textContent=d.ss?'SSR: Acik':'SSR: Kapali';ssrSt.className='brake-status-item '+(d.ss?'status-active':'status-free')}}
+  // Flashor
+  var flBtn=document.getElementById('flasher-btn');
+  var flSt=document.getElementById('flasher-status');
+  if(flBtn){flBtn.classList.toggle('brake-btn-active',!!d.fl);if(flSt){flSt.textContent=d.fl?'Flasor: Acik':'Flasor: Kapali';flSt.className='brake-status-item '+(d.fl?'status-active':'status-free')}}
+  // Neon
+  var neBtn=document.getElementById('neon-btn');
+  var neSt=document.getElementById('neon-status');
+  if(neBtn){neBtn.classList.toggle('brake-btn-active',!!d.ne);if(neSt){neSt.textContent=d.ne?'Neon: Acik':'Neon: Kapali';neSt.className='brake-status-item '+(d.ne?'status-active':'status-free')}}
+  // Buzzer
+  var bzBtn=document.getElementById('buzzer-btn');
+  if(bzBtn){bzBtn.classList.toggle('brake-btn-active',!!d.bz)}
+  // ABS
+  var afBtn=document.getElementById('abs-front-btn');
+  var afSt=document.getElementById('abs-front-status');
+  if(afBtn){afBtn.classList.toggle('brake-btn-active',!!d.af);if(afSt){afSt.textContent=d.af?'ABS On: Aktif':'ABS On: Kapali';afSt.className='brake-status-item '+(d.af?'status-active':'status-free')}}
+  var arBtn=document.getElementById('abs-rear-btn');
+  var arSt=document.getElementById('abs-rear-status');
+  if(arBtn){arBtn.classList.toggle('brake-btn-active',!!d.ar);if(arSt){arSt.textContent=d.ar?'ABS Arka: Aktif':'ABS Arka: Kapali';arSt.className='brake-status-item '+(d.ar?'status-active':'status-free')}}
+  // Sicaklik 1
+  if(d.tp!=null&&d.tp>0){var tv=document.getElementById('temp-value');if(tv)tv.textContent=Number(d.tp).toFixed(1);var ts=document.getElementById('temp-status');if(ts){ts.textContent='Sensor: Aktif';ts.className='brake-status-item status-active'}}
+  // Sicaklik 2
+  if(d.tp2!=null&&d.tp2>0){var tv2=document.getElementById('temp2-value');if(tv2)tv2.textContent=Number(d.tp2).toFixed(1);var ts2=document.getElementById('temp2-status');if(ts2){ts2.textContent='Sensor 2: Aktif';ts2.className='brake-status-item status-active'}}
+  // Sistem gucu - kontaktor durumuna gore
+  var spBtn=document.getElementById('system-power-btn');
+  var spSt=document.getElementById('system-power-status');
+  if(spBtn&&spSt){
+    if(d.ct){spBtn.textContent='Sistemin Gucunu Kes';spBtn.classList.remove('system-power-active');spSt.textContent='Sistem: Bagli';spSt.className='brake-status-item status-free'}
+    else if(d.em){spBtn.textContent='Sistemin Gucunu Bagla';spBtn.classList.add('system-power-active');spSt.textContent='Sistem: KESILDI';spSt.className='brake-status-item status-active'}
+  }
+}
+
+var _imuMax={ax:0,ay:0,az:0,total:0};
+var _imuLogBuf=[];
+var _imuLogNum=0;
+setInterval(function(){
+  if(_imuLogBuf.length===0)return;
+  _imuLogNum++;
+  var maxT=0;
+  _imuLogBuf.forEach(function(r){if(r.total>maxT)maxT=r.total});
+  console.log('[IMU LOG #'+_imuLogNum+'] Max ivme: '+maxT.toFixed(2)+' m/s2 ('+_imuLogBuf.length+' ornek)');
+  var el=document.getElementById('imu-log-status');
+  if(el)el.textContent='Log #'+_imuLogNum+': max '+maxT.toFixed(2)+' m/s\u00B2';
+  _imuLogBuf=[];
+},30000);
+
+var _lastRunDir='forward';
+var _lastRunFreq=10;
+var PI_API='http://192.168.1.6:8888';
+function ws(cmd){if(dws&&dws.readyState===1)dws.send(cmd)}
+function mapi(path){fetch(PI_API+path,{mode:'cors'}).catch(function(){})}
+
+function selectedMotorDirection(){
+  var fwd=document.getElementById('motor-forward-btn');
+  return fwd&&fwd.classList.contains('brake-btn-active')?'forward':'reverse';
+}
+function autonomStart(){
+  if(!dws||dws.readyState!==1){alert('Jetson baglantisi yok');return}
+  if(_lastHardwareStatus.em||_lastHardwareStatus.fb||_lastHardwareStatus.rb){
+    alert('Otonom baslatilamadi: once acil stopu ve frenleri serbest birak.');
+    return;
+  }
+  var dir=selectedMotorDirection();
+  _lastRunDir=dir;
+  ws('AUTONOM_START:'+dir);
+}
+function autonomStop(){
+  ws('AUTONOM_STOP');
+}
+function speedModeStart(){
+  if(!dws||dws.readyState!==1){alert('Jetson baglantisi yok');return}
+  if(_lastHardwareStatus.em||_lastHardwareStatus.fb||_lastHardwareStatus.rb){
+    alert('Hiz modu baslatilamadi: once acil stopu ve frenleri serbest birak.');
+    return;
+  }
+  var dir=selectedMotorDirection();
+  _lastRunDir=dir;
+  ws('SPEED_MODE_START:'+dir);
+}
+function updateAutonomousUI(d){
+  var start=document.getElementById('autonom-start');
+  var status=document.getElementById('autonom-status');
+  var direction=document.getElementById('autonom-direction');
+  var speedStart=document.getElementById('speed-mode-start');
+  var speedStatus=document.getElementById('speed-mode-status');
+  var speedDirection=document.getElementById('speed-mode-direction');
+  if(direction)direction.textContent='Yon: '+(d.direction==='reverse'?'GERI':'ILERI');
+  if(speedDirection)speedDirection.textContent='Yon: '+(d.direction==='reverse'?'GERI':'ILERI');
+  var mode1Active=!!d.active&&Number(d.mode)===1;
+  var mode2Active=!!d.active&&Number(d.mode)===2;
+  if(start){start.dataset.active=mode1Active?'1':'0';start.classList.toggle('active',mode1Active);start.disabled=!!d.active}
+  if(speedStart){speedStart.dataset.active=mode2Active?'1':'0';speedStart.classList.toggle('active',mode2Active);speedStart.disabled=!!d.active}
+  if(Number(d.mode)===2&&speedStatus){
+    if(mode2Active){
+      speedStatus.style.color='#b99aff';
+      speedStatus.textContent=Number(d.speed_kmh||0).toFixed(1)+' km/h \u2022 '+Number(d.frequency).toFixed(1)+' Hz';
+    }else{
+      speedStatus.style.color=d.reason==='error'||d.reason==='imu_lost'?'#ff7272':'#8fa5b5';
+      var speedReasons={imu_calibrating:'BNO kalibrasyonu bekleniyor',imu_lost:'BNO verisi kesildi \u2022 motor durdu',imu_reset:'BNO sifirlandi \u2022 motor durdu',error:'Hata \u2022 motor durdu'};
+      speedStatus.textContent=speedReasons[d.reason]||'Hazir \u2022 motor durdu';
+    }
+    return;
+  }
+  if(!status)return;
+  if(mode1Active){
+    status.style.color='#56e6ac';
+    status.textContent='Kademe '+d.stage+'/5 \u2022 '+Number(d.frequency).toFixed(0)+' Hz \u2022 kalan '+Number(d.remaining).toFixed(1)+' sn';
+  }else if(Number(d.mode)===1){
+    status.style.color=d.reason==='completed'?'#56e6ac':'#8fa5b5';
+    status.textContent=d.reason==='completed'?'Tamamlandi \u2022 motor durdu':'Hazir \u2022 motor durdu';
+  }
+}
+
+function runTimed(sec,btn){
+  if(btn.dataset.active==='1')return;
+  var fwdBtn=document.getElementById('motor-forward-btn');
+  var isForward=fwdBtn&&fwdBtn.classList.contains('brake-btn-active');
+  var dir=isForward?'forward':'reverse';
+  var revDir=isForward?'reverse':'forward';
+  var inp=document.getElementById('motor-freq-input');
+  var freq=inp?parseFloat(inp.value)||10:10;
+  _lastRunDir=dir;
+  _lastRunFreq=freq;
+  btn.dataset.active='1';btn.classList.add('active');
+  // Motor calistir (HTTP API ile)
+  mapi('/motor/'+dir);
+  mapi('/motor/freq/'+freq);
+  mapi('/motor/go');
+  var rem=sec;btn.textContent=rem+'sn';
+  var cd=setInterval(function(){
+    rem--;btn.textContent=rem+'sn';
+    if(rem<=0){
+      clearInterval(cd);
+      // Motor durdur + fren + motor fren (ters yon)
+      mapi('/motor/stop');
+      ws('FRONT_ON');ws('REAR_ON');
+      mapi('/motor/'+revDir);
+      mapi('/motor/freq/'+freq);
+      mapi('/motor/go');
+      btn.textContent='FREN...3sn';
+      var fr=3;
+      var cd2=setInterval(function(){
+        fr--;btn.textContent='FREN...'+fr+'sn';
+        if(fr<=0){clearInterval(cd2);mapi('/motor/stop');btn.classList.remove('active');btn.dataset.active='0';btn.textContent=sec+'sn CALISTIR';}
+      },1000);
+    }
+  },1000);
+}
+function motorBrake(btn){
+  if(btn.dataset.active==='1')return;
+  autonomStop();
+  btn.dataset.active='1';
+  var revDir=_lastRunDir==='forward'?'reverse':'forward';
+  btn.classList.add('active');btn.textContent='MOTOR FREN (3sn)';
+  ws('FRONT_ON');ws('REAR_ON');
+  mapi('/motor/'+revDir);
+  mapi('/motor/freq/'+_lastRunFreq);
+  mapi('/motor/go');
+  var rem=3;
+  var cd=setInterval(function(){
+    rem--;btn.textContent='MOTOR FREN ('+rem+'sn)';
+    if(rem<=0){clearInterval(cd);mapi('/motor/stop');btn.classList.remove('active');btn.textContent='MOTOR FREN';btn.dataset.active='0';}
+  },1000);
+}
+
+function vfdSend(m){if(dws&&dws.readyState===1)dws.send(m)}
+function vfdReadAll(){vfdSend('VFD_READ_ALL')}
+function uartReset(){
+  if(!dws||dws.readyState!==1){alert('Jetson baglantisi yok');return}
+  if(!confirm('UART hatti yeniden baslatilacak ve motor durdurulacak. Devam edilsin mi?'))return;
+  var b=document.getElementById('uart-reset');
+  if(b){b.disabled=true;b.textContent='UART Yeniden Basliyor...'}
+  vfdSend('UART_RESET');
+  setTimeout(function(){
+    if(b){b.disabled=false;b.textContent='UART Hattini Resetle'}
+    vfdReadAll();
+  },4500);
+}
+document.getElementById('vfd-read-all').onclick=vfdReadAll;
+document.getElementById('uart-reset').onclick=uartReset;
+document.getElementById('vfd-body').addEventListener('click',function(e){if(!e.target.classList.contains('vfd-wbtn'))return;var c=e.target.dataset.code,inp=document.getElementById('vi-'+c),val=parseInt(inp.value,10);if(isNaN(val))return;if(!confirm(c+' ('+VP[c].n+') = '+val+' yazilacak. Emin misin?'))return;vfdSend('VFD_WRITE:'+c+':'+val)});
+})();
+</script>
+</body>
+</html>
