@@ -20,6 +20,11 @@
  *   yanar/oter; ikisinden biri bile kapanirsa OTOMATIK soner/susar.
  *   Bu mantik Arduino'nun kendi icinde (updateAlarmFromBrakes) calisir,
  *   dashboard'un ayrica FLASHER_ON/BUZZER_ON gondermesine gerek yoktur.
+ *   AYNI FONKSIYONDA: HER IKI FREN DE aktif oldugunda kontaktor de OTOMATIK
+ *   kesilir (VFD'ye/surucuye guc gitmez) - sebep fark etmez (manuel buton,
+ *   ACIL STOP veya watchdog tetiklemesi). Tek yonlu: frenler acilinca
+ *   kontaktor kendiliginden geri devreye girmez, CONTACTOR_ON ile elle
+ *   acilmasi gerekir.
  *
  * Motor bu Arduino'da degil, Pi -> VFD (Modbus) uzerinden kontrol edilir.
  *
@@ -33,6 +38,7 @@
  *   STOP_LIGHT_ON / STOP_LIGHT_OFF -> stop lambasi
  *   GT  -> sicaklik oku -> "TEMP:<deger>"
  *   GO  -> omron sayaci oku -> "OMRON:<sayi>"
+ *   OMRON_RESET -> omron sayacini sifirla
  *   GA  -> tum durum -> "STATUS:{...}" (JSON)
  *
  *   Bilinmeyen komut -> "ERR:cmd"
@@ -82,6 +88,13 @@ const int PIN_5V_A3       = A3;
 const int RELAY_ON  = HIGH;
 const int RELAY_OFF = LOW;
 
+// 2026-08-12: On/arka fren valflerinin pnomatik borulari fiziksel olarak
+// yer degistirildi (kullanici tarafindan) - bu iki cikis icin ON/OFF anlami
+// tersine dondu. SADECE fren pinlerine ozel, buzzer/stop lambasi/kontaktor
+// yukarsidaki RELAY_ON/RELAY_OFF'u aynen kullanmaya devam ediyor.
+const int BRAKE_ON  = RELAY_OFF;
+const int BRAKE_OFF = RELAY_ON;
+
 // ── Durum degiskenleri ────────────────────────────────────────────────────────
 bool brakeFront  = false;
 bool brakeRear   = false;
@@ -90,6 +103,16 @@ bool flasherOn   = false;
 bool stopLightOn = false;
 bool contactorOn = false;
 bool ssrOn       = false;
+
+// ── Manuel buzzer (dashboard "Buzzer"/"Bip" butonlari) ──────────────────────
+// NOT: buzzerOn, updateAlarmFromBrakes() tarafindan da yonetiliyor (iki fren
+// de aktifken otomatik ON). Manuel BUZZER_ON sonrasi baska bir fren komutu
+// gelirse (bothOn hala false ise) otomatik mantik buzzerOn'u tekrar false'a
+// cekip kapatabilir - bu kasitli, guvenlik-kritik olmadigi icin ayri bir
+// "override" mekanizmasi eklenmedi.
+bool buzzerBeeping = false;
+unsigned long buzzerBeepStart = 0;
+const unsigned long BUZZER_BEEP_MS = 300UL;
 
 // ── Guvenlik watchdog (Jetson<->Arduino hatti) ──────────────────────────────
 // Jetson, guvenlik switchi acikken periyodik SAFE_HB gonderir. Bu sinyal
@@ -180,6 +203,23 @@ void updateAlarmFromBrakes() {
         stopLightOn = false;
         digitalWrite(PIN_STOP_LIGHT, RELAY_OFF);
     }
+
+    // Iki fren de aktif oldugunda kontaktoru kes - VFD'ye (surucuye) guc
+    // gitmesin. Sebep onemli degil: manuel buton, ACIL STOP veya watchdog
+    // (checkSafeWatchdog) - hepsi brakeFront/brakeRear'i set edip bu
+    // fonksiyonu cagiriyor, tek kaynaktan yonetiliyor.
+    // IKI YONLU: frenlerin ikisi de acilinca (bothOn'dan false'a donunce)
+    // kontaktor OTOMATIK geri devreye girer - kullanicinin elle tekrar
+    // CONTACTOR_ON gondermesine gerek yok.
+    if (bothOn && contactorOn) {
+        contactorOn = false;
+        digitalWrite(PIN_CONTACTOR, LOW);
+        Serial.println("EVENT:CONTACTOR_AUTO_CUT_BOTH_BRAKES");
+    } else if (!bothOn && !contactorOn) {
+        contactorOn = true;
+        digitalWrite(PIN_CONTACTOR, HIGH);
+        Serial.println("EVENT:CONTACTOR_AUTO_RESTORE_BRAKES_RELEASED");
+    }
 }
 
 // Jetson'dan SAFE_HB sinyali kesilirse (guvenlik switchi acikken) frenleri
@@ -190,8 +230,8 @@ void checkSafeWatchdog() {
     if (safeArmed && !safeTripped) {
         if (millis() - lastSafeHb > SAFE_HB_TIMEOUT_MS) {
             safeTripped = true;
-            digitalWrite(PIN_RELAY_FRONT, RELAY_ON);
-            digitalWrite(PIN_RELAY_REAR, RELAY_ON);
+            digitalWrite(PIN_RELAY_FRONT, BRAKE_ON);
+            digitalWrite(PIN_RELAY_REAR, BRAKE_ON);
             brakeFront = true;
             brakeRear  = true;
             updateAlarmFromBrakes();
@@ -233,28 +273,28 @@ void reportStatus() {
 void handleCommand(String line) {
 
     if (line == "FRONT_ON" || line == "FRONT_ABS_ON") {
-        digitalWrite(PIN_RELAY_FRONT, RELAY_ON);
+        digitalWrite(PIN_RELAY_FRONT, BRAKE_ON);
         brakeFront = true;
         updateAlarmFromBrakes();
         Serial.print("OK:"); Serial.println(line);
         return;
     }
     if (line == "FRONT_OFF" || line == "FRONT_ABS_OFF") {
-        digitalWrite(PIN_RELAY_FRONT, RELAY_OFF);
+        digitalWrite(PIN_RELAY_FRONT, BRAKE_OFF);
         brakeFront = false;
         updateAlarmFromBrakes();
         Serial.print("OK:"); Serial.println(line);
         return;
     }
     if (line == "REAR_ON" || line == "REAR_ABS_ON") {
-        digitalWrite(PIN_RELAY_REAR, RELAY_ON);
+        digitalWrite(PIN_RELAY_REAR, BRAKE_ON);
         brakeRear = true;
         updateAlarmFromBrakes();
         Serial.print("OK:"); Serial.println(line);
         return;
     }
     if (line == "REAR_OFF" || line == "REAR_ABS_OFF") {
-        digitalWrite(PIN_RELAY_REAR, RELAY_OFF);
+        digitalWrite(PIN_RELAY_REAR, BRAKE_OFF);
         brakeRear = false;
         updateAlarmFromBrakes();
         Serial.print("OK:"); Serial.println(line);
@@ -271,6 +311,28 @@ void handleCommand(String line) {
         digitalWrite(PIN_CONTACTOR, LOW);
         contactorOn = false;
         Serial.println("OK:CONTACTOR_OFF");
+        return;
+    }
+
+    if (line == "BUZZER_ON") {
+        buzzerOn = true;
+        buzzerBeeping = false;
+        digitalWrite(PIN_BUZZER, RELAY_ON);
+        Serial.println("OK:BUZZER_ON");
+        return;
+    }
+    if (line == "BUZZER_OFF") {
+        buzzerOn = false;
+        buzzerBeeping = false;
+        digitalWrite(PIN_BUZZER, RELAY_OFF);
+        Serial.println("OK:BUZZER_OFF");
+        return;
+    }
+    if (line == "BUZZER_BEEP") {
+        digitalWrite(PIN_BUZZER, RELAY_ON);
+        buzzerBeeping = true;
+        buzzerBeepStart = millis();
+        Serial.println("OK:BUZZER_BEEP");
         return;
     }
 
@@ -310,6 +372,15 @@ void handleCommand(String line) {
         Serial.println(omronCount);
         return;
     }
+    if (line == "OMRON_RESET") {
+        // omronCount ISR icinde de degistiriliyor; yazma sirasinda ISR
+        // araya girip yarim/bozuk deger olusmasin diye kesmeleri kisaca kapat.
+        noInterrupts();
+        omronCount = 0;
+        interrupts();
+        Serial.println("OK:OMRON_RESET");
+        return;
+    }
     if (line == "GA") {
         reportStatus();
         return;
@@ -343,12 +414,19 @@ void setup() {
     dsSensor.begin();
     dsSensor.setWaitForConversion(false);
 
-    int outputs[] = {PIN_BUZZER,
-                      PIN_RELAY_FRONT, PIN_RELAY_REAR, PIN_STOP_LIGHT};
-    for (int i = 0; i < 4; i++) {
+    int outputs[] = {PIN_BUZZER, PIN_STOP_LIGHT};
+    for (int i = 0; i < 2; i++) {
         pinMode(outputs[i], OUTPUT);
         digitalWrite(outputs[i], RELAY_OFF);
     }
+
+    // Fren pinleri: BRAKE_ON/BRAKE_OFF kullaniyor (RELAY_ON/OFF'un tersi,
+    // bkz. yukaridaki BRAKE_ON/BRAKE_OFF tanimi) - baslangicta guvenli
+    // (fren SERBEST) durum icin BRAKE_OFF yaziliyor.
+    pinMode(PIN_RELAY_FRONT, OUTPUT);
+    digitalWrite(PIN_RELAY_FRONT, BRAKE_OFF);
+    pinMode(PIN_RELAY_REAR, OUTPUT);
+    digitalWrite(PIN_RELAY_REAR, BRAKE_OFF);
 
     // FLASOR, SSR ve KONTAKTOR: RELAY_ON/RELAY_OFF sabitlerini kullanmiyor,
     // dogrudan ham HIGH/LOW ile kontrol ediliyor - baslangic KAPALI durumu
@@ -390,6 +468,15 @@ void loop() {
     updateTemperatureNonBlocking();
 
     unsigned long now = millis();
+
+    if (buzzerBeeping && (now - buzzerBeepStart >= BUZZER_BEEP_MS)) {
+        buzzerBeeping = false;
+        // Bip bitince buzzer'i GERCEK durumuna (buzzerOn) geri dondur --
+        // ornegin bip sirasinda iki fren de aktif olup otomatik ON tetiklendiyse
+        // ON kalmali, aksi halde OFF.
+        digitalWrite(PIN_BUZZER, buzzerOn ? RELAY_ON : RELAY_OFF);
+    }
+
     if (now - lastStatusReport >= STATUS_REPORT_INTERVAL) {
         lastStatusReport = now;
         Serial.print("TEMP:");

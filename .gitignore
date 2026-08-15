@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# STM32CubeIDE build ciktilari (regenerable)
+STM32_BMS_VFD/**/Debug/
+STM32_BMS_VFD/**/Release/

@@ -9,7 +9,7 @@ import struct
 import termios
 import time
 
-SERIAL_PORT = "/dev/ttyTHS1"
+SERIAL_PORT = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066DFF525753756687054117-if02"
 SERIAL_BAUD = 115200
 WS_HOST = "0.0.0.0"
 WS_PORT = 5006
@@ -18,8 +18,11 @@ WS_PORT = 5006
 # hangi numaraya duserse dussun ayni cihazi gosterir.
 ARDUINO_PORT = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 ARDUINO_BAUD = 115200
-HEARTBEAT_TIMEOUT = 0.2
+HEARTBEAT_TIMEOUT = 0.6
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+# BMS yayini gecici olarak kapatildi - motor/surucu trafigine oncelik
+# vermek icin. bms_cache yine de guncelleniyor, sadece broadcast edilmiyor.
+BMS_BROADCAST_ENABLED = True
 N_BMS = 7
 bms_cache = [None] * N_BMS
 last_serial_ts = 0
@@ -42,7 +45,7 @@ watchdog_triggered = False
 # uzerinden) bakiliyordu; hem daha yavasti (600ms) hem de yeni baglanan
 # HERHANGI bir istemcide last_client_ip'yi degistirip yanlis IP'yi izlemeye
 # devam etme hatasi vardi. Bu ayarla o katmana gerek kalmiyor.
-SOCKET_DEAD_TIMEOUT_MS = 300
+SOCKET_DEAD_TIMEOUT_MS = 800
 KEEPALIVE_IDLE_S = 1
 KEEPALIVE_INTERVAL_S = 1
 KEEPALIVE_COUNT = 2
@@ -718,9 +721,10 @@ async def handle_client(reader, writer):
     configure_socket_fast_failure(writer)
     print("[WS] Tarayici bagli: %s" % str(peer))
     clients.add(writer)
-    known = [b for b in bms_cache if b is not None]
-    if known:
-        await send_json(writer, {"type": "bms", "data": known})
+    if BMS_BROADCAST_ENABLED:
+        known = [b for b in bms_cache if b is not None]
+        if known:
+            await send_json(writer, {"type": "bms", "data": known})
     try:
         writer.write(encode_text_frame("PI_CONNECTED"))
         await writer.drain()
@@ -903,8 +907,9 @@ async def serial_reader():
                 if isinstance(idx, int) and 0 <= idx < N_BMS:
                     bms_cache[idx] = data
                     last_serial_ts = time.time()
-                    known = [b for b in bms_cache if b is not None]
-                    await broadcast({"type": "bms", "data": known})
+                    if BMS_BROADCAST_ENABLED:
+                        known = [b for b in bms_cache if b is not None]
+                        await broadcast({"type": "bms", "data": known})
             elif isinstance(data, dict) and data.get("type") in ("vfd_data", "vfd_write_result", "motor"):
                 await broadcast(data)
         except Exception as e:

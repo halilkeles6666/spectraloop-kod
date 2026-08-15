@@ -165,7 +165,30 @@
       <button class="vfd-refresh" id="vfd-read-all">Tumunu Oku</button>
     </div>
     <div class="vfd-warn"><b>Uyari:</b> Bir parametreyi <b>YAZMADAN once</b> Ham degeri VFD panelinden okudugun degerle karsilastir.</div>
+    <div class="vfd-generic-panel" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0;padding:8px;border:1px solid rgba(0,190,255,.35);border-radius:8px;background:rgba(0,60,90,.12)">
+      <b style="font-size:10px;color:#66d9ff">Genel Parametre</b>
+      <input type="text" id="vfd-generic-code" placeholder="kod, orn. 05-17" style="width:90px;padding:5px 6px;border-radius:5px;border:1px solid #345;background:#0b1720;color:#cde">
+      <button class="vfd-refresh" id="vfd-generic-read">Oku</button>
+      <input type="number" id="vfd-generic-value" placeholder="yeni deger" style="width:100px;padding:5px 6px;border-radius:5px;border:1px solid #345;background:#0b1720;color:#cde">
+      <button class="vfd-refresh" id="vfd-generic-write">Yaz</button>
+      <span id="vfd-generic-result" style="font-size:10px;color:#9ab"></span>
+    </div>
     <table class="vfd-table"><thead><tr><th>Kod</th><th>Parametre</th><th>Ham</th><th>Olcekli</th><th>Birim</th><th>Yeni Deger</th></tr></thead><tbody id="vfd-body"></tbody></table>
+  </div>
+</div>
+<div class="overlay-panel" id="deneme-panel">
+  <button class="overlay-close" id="deneme-close">KAPAT</button>
+  <div class="vfd-page">
+    <div class="vfd-topbar">
+      <span class="vfd-topbar-title">Surucu Denemeleri</span>
+    </div>
+    <div class="vfd-warn"><b>Uyari:</b> Bu butonlar motoru fiilen calistirir. Baslatmadan once alanin guvenli oldugundan emin ol.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+      <button class="vfd-refresh" id="deneme-10" style="flex:1;min-width:220px;padding:12px">10 Hz/sn Rampa (20 &rarr; 150 Hz)</button>
+      <button class="vfd-refresh" id="deneme-20" style="flex:1;min-width:220px;padding:12px">20 Hz/sn Rampa (20 &rarr; 150 Hz)</button>
+    </div>
+    <button class="vfd-refresh" id="deneme-stop" style="width:100%;padding:12px;color:#ff6666;border-color:rgba(255,60,60,.5);background:rgba(180,20,20,.15)">DURDUR</button>
+    <div id="deneme-status" style="margin-top:10px;font-size:12px;color:#9ab;text-align:center">Hazir</div>
   </div>
 </div>
 <script>
@@ -204,12 +227,14 @@ function inject(){
   var bar=document.querySelector('.conn-bar');if(!bar)return false;if(document.getElementById('tab-bar'))return true;
   watchClicks();
   var tb=document.createElement('div');tb.className='tab-bar';tb.id='tab-bar';
-  tb.innerHTML='<button class="tab-btn" id="tab-bms">BMS Hucreler</button><button class="tab-btn tab-vfd" id="tab-vfd">VFD Kontrol</button>';
+  tb.innerHTML='<button class="tab-btn" id="tab-bms">BMS Hucreler</button><button class="tab-btn tab-vfd" id="tab-vfd">VFD Kontrol</button><button class="tab-btn tab-vfd" id="tab-deneme">Deneme</button>';
   bar.appendChild(tb);
   document.getElementById('tab-bms').onclick=function(){document.getElementById('bms-panel').classList.add('visible')};
   document.getElementById('tab-vfd').onclick=function(){document.getElementById('vfd-panel').classList.add('visible');vfdReadAll()};
+  document.getElementById('tab-deneme').onclick=function(){document.getElementById('deneme-panel').classList.add('visible')};
   document.getElementById('bms-close').onclick=function(){document.getElementById('bms-panel').classList.remove('visible')};
   document.getElementById('vfd-close').onclick=function(){document.getElementById('vfd-panel').classList.remove('visible')};
+  document.getElementById('deneme-close').onclick=function(){document.getElementById('deneme-panel').classList.remove('visible');stopRamp()};
   return true;
 }
 if(!inject()){var iv1=setInterval(function(){if(inject())clearInterval(iv1)},100)}
@@ -337,21 +362,11 @@ function unlockFreqInput(){
 }
 if(!unlockFreqInput()){var ivFQ=setInterval(function(){if(unlockFreqInput())clearInterval(ivFQ)},200);setTimeout(function(){clearInterval(ivFQ)},8000)}
 
-function interceptMotorCmds(){
-  var origSend=WebSocket.prototype.send;
-  WebSocket.prototype.send=function(data){
-    if(typeof data==='string'){
-      if(data==='MOTOR_DIR_FORWARD'){mapi('/motor/forward');_lastRunDir='forward';return}
-      if(data==='MOTOR_DIR_REVERSE'){mapi('/motor/reverse');_lastRunDir='reverse';return}
-      if(data.startsWith('MOTOR_FREQ:')){var inp=document.getElementById('motor-freq-input');var f=inp?inp.value:data.substring(11);mapi('/motor/freq/'+f);return}
-      if(data==='MOTOR_GO'){mapi('/motor/go');return}
-      if(data==='MOTOR_STOP'){mapi('/motor/stop');return}
-    }
-    origSend.call(this,data);
-  };
-}
-// Motor komutlarini sabit Pi IP'sine yonlendirme.
-// Mevcut WebSocket -> Jetson UART -> Pi yolunu kullan.
+// Motor komutlari WebSocket -> Jetson (uart_ws_bridge.py) -> UART -> STM32
+// yolunu kullanir (bkz. ws()/vfdSend()). Eskiden burada motor komutlarini
+// WebSocket.send'i override ederek sabit bir Pi IP'sine (HTTP) yonlendiren
+// bir intercept vardi -- Pi kaldirilip yerine STM32 gelince o yol da
+// kaldirildi, tum motor komutlari artik tek ve tutarli UART hattindan gider.
 
 function killVA(){var p=document.querySelector('.va-center-panel');if(!p)return false;p.querySelectorAll('video').forEach(function(v){try{v.pause();v.removeAttribute('src');v.load()}catch(e){}});return true}
 if(!killVA()){var iv3=setInterval(function(){if(killVA())clearInterval(iv3)},300);setTimeout(function(){clearInterval(iv3)},8000)}
@@ -361,6 +376,9 @@ if(!moveTemp()){var iv4=setInterval(function(){if(moveTemp())clearInterval(iv4)}
 
 function addTemp2(){var tempEl=document.getElementById('temp-value');if(!tempEl)return false;if(document.getElementById('temp2-value'))return true;var card=tempEl.closest('.panel-card');if(!card)return false;var row=document.createElement('div');row.className='metric';row.innerHTML='<span class="metric-label">Sicaklik 2</span><span><span class="metric-value" id="temp2-value">--</span><span class="metric-unit">\u00B0C</span></span>';card.appendChild(row);var st=document.createElement('div');st.className='brake-status-item status-free';st.id='temp2-status';st.textContent='Sensor 2: Bekleniyor';st.style.cssText='font-size:9px;text-align:center;margin-top:2px';card.appendChild(st);return true}
 if(!addTemp2()){var ivT2=setInterval(function(){if(addTemp2())clearInterval(ivT2)},300);setTimeout(function(){clearInterval(ivT2)},8000)}
+
+function addOmronReset(){var st=document.getElementById('omron-status');if(!st)return false;if(document.getElementById('omron-reset-btn'))return true;var card=st.closest('.panel-card');if(!card)return false;var btn=document.createElement('button');btn.id='omron-reset-btn';btn.textContent='SIFIRLA';btn.style.cssText='margin-top:4px;font-size:8px;padding:3px 12px;border-radius:4px;border:1px solid rgba(0,170,255,0.4);background:rgba(0,170,255,0.12);color:#0af;cursor:pointer;font-weight:700';btn.addEventListener('click',function(){if(dws&&dws.readyState===1)dws.send('OMRON_RESET')});card.appendChild(btn);return true}
+if(!addOmronReset()){var ivOR=setInterval(function(){if(addOmronReset())clearInterval(ivOR)},300);setTimeout(function(){clearInterval(ivOR)},8000)}
 
 // IMU (BNO055) paneli
 // IMU paneli - batarya sicakliklari yanina
@@ -558,8 +576,14 @@ function connectDws(){
     else if(msg.type==='imu_speed_reset'){var rs=document.getElementById('sp-status');if(rs)rs.textContent='BNO: yeniden kalibre ediliyor'}
     else if(msg.type==='uart_reset'){var ur=document.getElementById('uart-reset');if(ur){ur.textContent='UART Yeniden Basliyor...';ur.disabled=true}}
     else if(msg.type==='autonomous_mode'&&msg.data){updateAutonomousUI(msg.data)}
-    else if(msg.type==='vfd_data'){var vb2=document.getElementById('vfd-status-badge');if(vb2){vb2.textContent=msg.connected?'VFD: Bagli':'VFD: Yok';vb2.className='bms-badge '+(msg.connected?'bms-badge-ok':'bms-badge-off')}Object.keys(msg.data).forEach(function(c){var raw=msg.data[c],re=document.getElementById('vr-'+c),se=document.getElementById('vs-'+c);if(raw==null){if(re)re.textContent='-';if(se)se.textContent='-';return}if(re)re.textContent=raw;if(se){var sc=(VP[c]&&VP[c].s)||1;se.textContent=(raw*sc).toFixed(sc<1?2:0)}})}
-    else if(msg.type==='vfd_write_result'){var el=document.getElementById('vx-'+msg.code);if(el){el.textContent=msg.ok?'Yazildi':'Hata';el.className='vfd-res '+(msg.ok?'ok':'fail');setTimeout(function(){el.textContent=''},4000)}}
+    else if(msg.type==='vfd_data'){var vb2=document.getElementById('vfd-status-badge');if(vb2){vb2.textContent=msg.connected?'VFD: Bagli':'VFD: Yok';vb2.className='bms-badge '+(msg.connected?'bms-badge-ok':'bms-badge-off')}var vfdKeys=Object.keys(msg.data);vfdKeys.forEach(function(c){var raw=msg.data[c],re=document.getElementById('vr-'+c),se=document.getElementById('vs-'+c);if(raw==null){if(re)re.textContent='-';if(se)se.textContent='-';return}if(re)re.textContent=raw;if(se){var sc=(VP[c]&&VP[c].s)||1;se.textContent=(raw*sc).toFixed(sc<1?2:0)}});
+      // Genel oku/yaz kutusu: VFD_READ:<kod> ile tek parametre istendiginde
+      // (tabloda olsun olmasin) sonucu burada da goster.
+      var gr=document.getElementById('vfd-generic-result');
+      if(gr&&vfdKeys.length===1){var gk=vfdKeys[0],gv=msg.data[gk];gr.textContent=gk+' = '+(gv==null?'HATA / cevap yok':gv)}}
+    else if(msg.type==='vfd_write_result'){var el=document.getElementById('vx-'+msg.code);if(el){el.textContent=msg.ok?'Yazildi':'Hata';el.className='vfd-res '+(msg.ok?'ok':'fail');setTimeout(function(){el.textContent=''},4000)}
+      var gwr=document.getElementById('vfd-generic-result');
+      if(gwr)gwr.textContent=msg.code+': '+(msg.ok?'Yazildi ✓':'Hata / cevap yok');}
   }catch(e){}};
   dws.onclose=dws.onerror=function(){var b=document.getElementById('bms-ws-badge');if(b){b.textContent='KESILDI';b.className='bms-badge bms-badge-off'}var v=document.getElementById('vfd-ws-badge');if(v){v.textContent='KESILDI';v.className='bms-badge bms-badge-off'}setTimeout(connectDws,2000)};
   }catch(e){setTimeout(connectDws,2000)}
@@ -633,9 +657,7 @@ setInterval(function(){
 
 var _lastRunDir='forward';
 var _lastRunFreq=10;
-var PI_API='http://192.168.1.6:8888';
 function ws(cmd){if(dws&&dws.readyState===1)dws.send(cmd)}
-function mapi(path){fetch(PI_API+path,{mode:'cors'}).catch(function(){})}
 
 function selectedMotorDirection(){
   var fwd=document.getElementById('motor-forward-btn');
@@ -709,26 +731,26 @@ function runTimed(sec,btn){
   _lastRunDir=dir;
   _lastRunFreq=freq;
   btn.dataset.active='1';btn.classList.add('active');
-  // Motor calistir (HTTP API ile)
-  mapi('/motor/'+dir);
-  mapi('/motor/freq/'+freq);
-  mapi('/motor/go');
+  // Motor calistir (WebSocket -> Jetson -> UART -> STM32)
+  ws(dir==='forward'?'MOTOR_DIR_FORWARD':'MOTOR_DIR_REVERSE');
+  ws('MOTOR_FREQ:'+freq);
+  ws('MOTOR_GO');
   var rem=sec;btn.textContent=rem+'sn';
   var cd=setInterval(function(){
     rem--;btn.textContent=rem+'sn';
     if(rem<=0){
       clearInterval(cd);
       // Motor durdur + fren + motor fren (ters yon)
-      mapi('/motor/stop');
+      ws('MOTOR_STOP');
       ws('FRONT_ON');ws('REAR_ON');
-      mapi('/motor/'+revDir);
-      mapi('/motor/freq/'+freq);
-      mapi('/motor/go');
+      ws(revDir==='forward'?'MOTOR_DIR_FORWARD':'MOTOR_DIR_REVERSE');
+      ws('MOTOR_FREQ:'+freq);
+      ws('MOTOR_GO');
       btn.textContent='FREN...3sn';
       var fr=3;
       var cd2=setInterval(function(){
         fr--;btn.textContent='FREN...'+fr+'sn';
-        if(fr<=0){clearInterval(cd2);mapi('/motor/stop');btn.classList.remove('active');btn.dataset.active='0';btn.textContent=sec+'sn CALISTIR';}
+        if(fr<=0){clearInterval(cd2);ws('MOTOR_STOP');btn.classList.remove('active');btn.dataset.active='0';btn.textContent=sec+'sn CALISTIR';}
       },1000);
     }
   },1000);
@@ -740,15 +762,57 @@ function motorBrake(btn){
   var revDir=_lastRunDir==='forward'?'reverse':'forward';
   btn.classList.add('active');btn.textContent='MOTOR FREN (3sn)';
   ws('FRONT_ON');ws('REAR_ON');
-  mapi('/motor/'+revDir);
-  mapi('/motor/freq/'+_lastRunFreq);
-  mapi('/motor/go');
+  ws(revDir==='forward'?'MOTOR_DIR_FORWARD':'MOTOR_DIR_REVERSE');
+  ws('MOTOR_FREQ:'+_lastRunFreq);
+  ws('MOTOR_GO');
   var rem=3;
   var cd=setInterval(function(){
     rem--;btn.textContent='MOTOR FREN ('+rem+'sn)';
-    if(rem<=0){clearInterval(cd);mapi('/motor/stop');btn.classList.remove('active');btn.textContent='MOTOR FREN';btn.dataset.active='0';}
+    if(rem<=0){clearInterval(cd);ws('MOTOR_STOP');btn.classList.remove('active');btn.textContent='MOTOR FREN';btn.dataset.active='0';}
   },1000);
 }
+
+// ── "Deneme" sekmesi: surucu (VFD) frekans rampa testleri ──────────────────
+// 20Hz'den baslayip her saniye belirtilen adim kadar artar, 150Hz tavanina
+// ulasinca durur (motor o hizda calismaya devam eder, DURDUR ile kapatilir).
+var _rampInterval=null,_rampFreq=0,_rampStep=0;
+var RAMP_START=20,RAMP_CAP=150;
+function setDenemeBtnsEnabled(en){
+  ['deneme-10','deneme-20'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=!en});
+}
+function stopRamp(){
+  if(_rampInterval){clearInterval(_rampInterval);_rampInterval=null}
+  ws('MOTOR_STOP');
+  var st=document.getElementById('deneme-status');
+  if(st)st.textContent='Durduruldu';
+  setDenemeBtnsEnabled(true);
+}
+function startRamp(step){
+  if(_rampInterval)return;
+  if(!dws||dws.readyState!==1){alert('Jetson baglantisi yok');return}
+  if(!confirm('Motor '+step+' Hz/sn artisla '+RAMP_START+'Hz\'den '+RAMP_CAP+'Hz\'e kadar hizlanacak. Alan guvenli mi (kimse yakininda degil, acil stopa erisimin var)? Devam edilsin mi?'))return;
+  setDenemeBtnsEnabled(false);
+  _rampStep=step;
+  _rampFreq=RAMP_START;
+  ws('MOTOR_DIR_FORWARD');
+  ws('MOTOR_FREQ:'+_rampFreq);
+  ws('MOTOR_GO');
+  var st=document.getElementById('deneme-status');
+  if(st)st.textContent='Basladi: '+_rampFreq+' Hz';
+  _rampInterval=setInterval(function(){
+    _rampFreq=Math.min(RAMP_CAP,_rampFreq+_rampStep);
+    ws('MOTOR_FREQ:'+_rampFreq);
+    if(st)st.textContent='Calisiyor: '+_rampFreq+' Hz';
+    if(_rampFreq>=RAMP_CAP){
+      clearInterval(_rampInterval);_rampInterval=null;
+      if(st)st.textContent='Tavana ulasti: '+RAMP_CAP+' Hz (motor calisiyor, DURDUR ile kapat)';
+      setDenemeBtnsEnabled(true);
+    }
+  },1000);
+}
+document.getElementById('deneme-10').onclick=function(){startRamp(10)};
+document.getElementById('deneme-20').onclick=function(){startRamp(20)};
+document.getElementById('deneme-stop').onclick=stopRamp;
 
 function vfdSend(m){if(dws&&dws.readyState===1)dws.send(m)}
 function vfdReadAll(){vfdSend('VFD_READ_ALL')}
@@ -766,6 +830,25 @@ function uartReset(){
 document.getElementById('vfd-read-all').onclick=vfdReadAll;
 document.getElementById('uart-reset').onclick=uartReset;
 document.getElementById('vfd-body').addEventListener('click',function(e){if(!e.target.classList.contains('vfd-wbtn'))return;var c=e.target.dataset.code,inp=document.getElementById('vi-'+c),val=parseInt(inp.value,10);if(isNaN(val))return;if(!confirm(c+' ('+VP[c].n+') = '+val+' yazilacak. Emin misin?'))return;vfdSend('VFD_WRITE:'+c+':'+val)});
+
+// Genel parametre oku/yaz kutusu -- tabloda olsun olmasin, "GG-II" formatinda
+// (Delta'nin Pr. adresleme kurali) HERHANGI bir parametre kodu girilebilir;
+// STM32 tarafi tabloda bulamazsa adresi bu formulden kendisi hesapliyor
+// (bkz. jetson_link.c::ParseGenericAddr).
+document.getElementById('vfd-generic-read').onclick=function(){
+  var c=document.getElementById('vfd-generic-code').value.trim();
+  if(!c)return;
+  var gr=document.getElementById('vfd-generic-result');
+  if(gr)gr.textContent='Okunuyor...';
+  vfdSend('VFD_READ:'+c);
+};
+document.getElementById('vfd-generic-write').onclick=function(){
+  var c=document.getElementById('vfd-generic-code').value.trim();
+  var v=parseInt(document.getElementById('vfd-generic-value').value,10);
+  if(!c||isNaN(v))return;
+  if(!confirm(c+' = '+v+' yazilacak. VFD panelinden mevcut degeri once kontrol ettin mi? Emin misin?'))return;
+  vfdSend('VFD_WRITE:'+c+':'+v);
+};
 })();
 </script>
 </body>
