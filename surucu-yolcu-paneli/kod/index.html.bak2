@@ -1,0 +1,323 @@
+<meta charset="utf-8">
+<title>Kapsül Kontrol Paneli</title>
+<style>
+  :root{
+    --bg:#03060b;
+    --panel:#070c16;
+    --panel-2:#0a1220;
+    --seam: rgba(0,229,255,.18);
+    --neon:#00e5ff;
+    --neon-soft:#7fedff;
+    --neon-glow: rgba(0,229,255,.55);
+    --neon-glow-soft: rgba(0,229,255,.22);
+    --text:#dff6ff;
+    --text-dim:#6d93a8;
+    --text-faint:#33495a;
+    --danger:#ff3b5c;
+    --danger-glow: rgba(255,59,92,.5);
+    --mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --display: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html, body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    overflow:hidden;
+  }
+
+  .stage{
+    display:grid;
+    grid-template-columns: 1fr 2px 1fr;
+    min-height:100vh;
+    min-height:100dvh;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(0,229,255,.06), transparent 60%),
+      var(--bg);
+  }
+
+  /* ---------- center seam ---------- */
+  .seam{
+    position:relative;
+    background: linear-gradient(180deg, transparent, var(--seam) 12%, var(--seam) 88%, transparent);
+  }
+  .seam::before{
+    content:"";
+    position:absolute; inset:0 -14px;
+    background: linear-gradient(90deg, transparent, var(--neon-glow-soft), transparent);
+    filter: blur(6px);
+  }
+  .seam-node{
+    position:absolute; left:50%; top:50%;
+    width:10px; height:10px;
+    transform: translate(-50%,-50%) rotate(45deg);
+    background: var(--bg);
+    border: 1.5px solid var(--neon);
+    box-shadow: 0 0 10px var(--neon-glow), 0 0 24px var(--neon-glow-soft);
+  }
+
+  /* ---------- side layout ---------- */
+  .side{
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    min-height:0;
+    padding: clamp(14px, 2.4vh, 28px) clamp(16px, 3vw, 48px);
+    gap: clamp(10px, 2vh, 20px);
+  }
+  .side-driver{ justify-items:start; }
+  .side-passenger{ justify-items:end; }
+
+  /* ---------- header ---------- */
+  .head{ display:flex; flex-direction:column; gap:6px; }
+  .side-passenger .head{ align-items:flex-end; text-align:right; }
+
+  .status{
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; letter-spacing:.18em; color:var(--text-dim);
+    text-transform:uppercase;
+  }
+  .side-passenger .status{ flex-direction:row-reverse; }
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--neon);
+    box-shadow:0 0 6px var(--neon-glow), 0 0 14px var(--neon-glow);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  .role{
+    font-family:var(--display);
+    font-weight:800;
+    font-size: clamp(30px, 5vw, 56px);
+    letter-spacing:.04em;
+    line-height:1;
+    text-transform:uppercase;
+    color:var(--text);
+    text-shadow: 0 0 18px var(--neon-glow-soft);
+    text-wrap:balance;
+  }
+  .role span{ color:var(--neon); }
+  .kicker{
+    font-size:11px; letter-spacing:.24em; color:var(--text-faint);
+    text-transform:uppercase;
+  }
+
+  /* ---------- video ---------- */
+  .video-wrap{
+    display:flex; align-items:center; justify-content:center;
+    width:100%; min-height:0;
+  }
+  .video-frame{
+    position:relative;
+    width:min(100%, 620px);
+    aspect-ratio:16/9;
+    background: var(--panel);
+    border:1px solid rgba(0,229,255,.25);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 0 32px rgba(0,229,255,.10) inset, 0 0 40px rgba(0,229,255,.08);
+    overflow:hidden;
+  }
+  .video-frame video{
+    width:100%; height:100%; display:block; background:#000;
+  }
+  .feed-tag{
+    position:absolute; top:8px; left:10px;
+    font-size:10px; letter-spacing:.16em;
+    color:var(--neon-soft);
+    text-shadow:0 0 8px var(--neon-glow);
+    pointer-events:none;
+    z-index:2;
+  }
+  .rec{
+    position:absolute; top:8px; right:10px;
+    display:flex; align-items:center; gap:5px;
+    font-size:10px; letter-spacing:.16em; color:var(--text-dim);
+    pointer-events:none; z-index:2;
+  }
+  .rec .dot{ width:5px; height:5px; }
+
+  .corner{ position:absolute; width:16px; height:16px; border:2px solid var(--neon); opacity:.7; z-index:2; }
+  .corner.tl{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  .corner.tr{ top:-1px; right:-1px; border-left:none; border-bottom:none; }
+  .corner.bl{ bottom:-1px; left:-1px; border-right:none; border-top:none; }
+  .corner.br{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+
+  .scan{
+    position:absolute; inset:0;
+    background: repeating-linear-gradient(0deg, rgba(0,229,255,.05) 0px, rgba(0,229,255,.05) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:screen; pointer-events:none;
+  }
+
+  /* ---------- buttons ---------- */
+  .grid6{
+    width:100%;
+    display:grid;
+    grid-template-columns: repeat(5, minmax(0,1fr));
+    gap: clamp(8px, 1.2vw, 14px);
+  }
+  .btn{
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center;
+    min-height: clamp(46px, 7vh, 68px);
+    padding: 6px 8px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px dashed rgba(0,229,255,.28);
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    line-height:1.3;
+    text-wrap:balance;
+    cursor:pointer;
+    transition: color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease;
+  }
+  .btn:empty{ color:var(--text-faint); }
+  .btn:empty::before{
+    content: attr(data-slot);
+  }
+  .btn:hover{
+    color:var(--neon-soft);
+    border-color:var(--neon);
+    border-style:solid;
+    box-shadow: 0 0 0 1px rgba(0,229,255,.25) inset, 0 0 16px var(--neon-glow-soft);
+  }
+  .btn:active{ transform: translateY(1px) scale(.98); }
+  .btn:focus-visible{
+    outline: 2px solid var(--neon);
+    outline-offset: 2px;
+  }
+  .btn.danger{ border-color: rgba(255,59,92,.35); color:#c95a6c; }
+  .btn.danger:hover{
+    color:#ff7b90;
+    border-color:var(--danger);
+    border-style:solid;
+    box-shadow: 0 0 0 1px rgba(255,59,92,.3) inset, 0 0 18px var(--danger-glow);
+  }
+  .btn.is-active{
+    color:var(--neon);
+    border-color:var(--neon);
+    border-style:solid;
+    box-shadow: 0 0 0 1px rgba(0,229,255,.35) inset, 0 0 18px var(--neon-glow);
+  }
+  .btn.danger.is-active{
+    color:var(--danger);
+    border-color:var(--danger);
+    box-shadow: 0 0 0 1px rgba(255,59,92,.4) inset, 0 0 18px var(--danger-glow);
+  }
+
+  @media (max-width: 720px){
+    .stage{ grid-template-columns: 1fr; grid-template-rows: 1fr 2px 1fr; }
+    .seam{ background: linear-gradient(90deg, transparent, var(--seam) 12%, var(--seam) 88%, transparent); }
+    .seam::before{ inset:-14px 0; background:linear-gradient(180deg, transparent, var(--neon-glow-soft), transparent); }
+    .side-passenger{ justify-items:start; text-align:left; }
+    .side-passenger .head, .side-passenger .status{ align-items:flex-start; flex-direction:row; text-align:left; }
+  }
+
+  @keyframes pulse{
+    0%, 100%{ opacity:1; } 50%{ opacity:.35; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .dot{ animation:none; }
+  }
+</style>
+
+<div class="stage">
+
+  <!-- ================= SÜRÜCÜ ================= -->
+  <section class="side side-driver">
+    <div class="head">
+      <div class="status"><span class="dot"></span>Sistem Çevrimiçi</div>
+      <h1 class="role"><span>SÜ</span>RÜCÜ</h1>
+      <div class="kicker">Kontrol Paneli · Panel A</div>
+    </div>
+
+    <div class="video-wrap">
+      <div class="video-frame">
+        <span class="feed-tag" id="surucu-feed-tag">CAM 01 // ÖN GÖRÜŞ</span>
+        <span class="rec"><span class="dot"></span>CANLI</span>
+        <video id="surucu-video" controls playsinline preload="none"
+          poster="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect width='640' height='360' fill='%23070c16'/%3E%3Ctext x='50%25' y='50%25' fill='%233c576a' font-family='monospace' font-size='16' letter-spacing='3' text-anchor='middle'%3ESİNYAL BEKLENİYOR%3C/text%3E%3C/svg%3E">
+        </video>
+        <div class="scan"></div>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+      </div>
+    </div>
+
+    <div class="grid6" id="surucu-buttons">
+      <button class="btn" data-video="../videolar/sensor_gurultu.mp4" data-tag="CAM 01 // SENSÖR GÜRÜLTÜ">Sensör Gürültü</button>
+      <button class="btn" data-video="../videolar/bms.mp4" data-tag="CAM 01 // BMS">Bms</button>
+      <button class="btn" data-video="../videolar/basinc.mp4" data-tag="CAM 01 // KABİN BASINCI">Kabin Basıncı</button>
+      <button class="btn" data-video="../videolar/dogrulama.mp4" data-tag="CAM 01 // DOĞRULAMA HATASI">Doğrulama Hatası</button>
+      <button class="btn" data-video="../videolar/levitasyonsurucu.mp4" data-tag="CAM 01 // LEVİTASYON">Levitasyon</button>
+    </div>
+  </section>
+
+  <!-- ================= SEAM ================= -->
+  <div class="seam"><div class="seam-node"></div></div>
+
+  <!-- ================= YOLCU ================= -->
+  <section class="side side-passenger">
+    <div class="head">
+      <div class="status"><span class="dot"></span>Sistem Çevrimiçi</div>
+      <h1 class="role">YOL<span>CU</span></h1>
+      <div class="kicker">Yolcu Arayüzü · Panel B</div>
+    </div>
+
+    <div class="video-wrap">
+      <div class="video-frame">
+        <span class="feed-tag" id="yolcu-feed-tag">CAM 02 // KABİN</span>
+        <span class="rec"><span class="dot"></span>CANLI</span>
+        <video id="yolcu-video" controls playsinline preload="none"
+          poster="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect width='640' height='360' fill='%23070c16'/%3E%3Ctext x='50%25' y='50%25' fill='%233c576a' font-family='monospace' font-size='16' letter-spacing='3' text-anchor='middle'%3ESİNYAL BEKLENİYOR%3C/text%3E%3C/svg%3E">
+        </video>
+        <div class="scan"></div>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+      </div>
+    </div>
+
+    <div class="grid6" id="yolcu-buttons">
+      <button class="btn" data-video="../videolar/kabin_basinci.mp4" data-tag="CAM 02 // KABİN BASINCI">Kabin Basıncı</button>
+      <button class="btn" data-video="../videolar/levitasyon.mp4" data-tag="CAM 02 // LEVİTASYON">Levitasyon</button>
+      <button class="btn" data-video="../videolar/sicaklik.mp4" data-tag="CAM 02 // SICAKLIK">Sıcaklık</button>
+      <button class="btn danger" data-video="../videolar/acil_durum.mp4" data-tag="CAM 02 // ACİL DURUM">Acil Durum</button>
+      <button class="btn" data-video="../videolar/durma.mp4" data-tag="CAM 02 // DURMA">Durma</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function(){
+    function wirePanel(videoId, tagId, buttonsSelector){
+      var video = document.getElementById(videoId);
+      var tag = document.getElementById(tagId);
+      var buttons = document.querySelectorAll(buttonsSelector);
+
+      buttons.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var src = btn.getAttribute('data-video');
+          if (!src) return;
+
+          buttons.forEach(function(b){ b.classList.remove('is-active'); });
+          btn.classList.add('is-active');
+
+          if (tag) tag.textContent = btn.getAttribute('data-tag') || tag.textContent;
+
+          video.setAttribute('src', src);
+          video.load();
+          video.play().catch(function(){ /* tarayıcı otomatik oynatmayı engellemiş olabilir, kullanıcı oynat'a basar */ });
+        });
+      });
+    }
+
+    wirePanel('surucu-video', 'surucu-feed-tag', '#surucu-buttons .btn');
+    wirePanel('yolcu-video', 'yolcu-feed-tag', '#yolcu-buttons .btn');
+  })();
+</script>
